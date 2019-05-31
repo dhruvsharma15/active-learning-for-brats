@@ -1,2 +1,5 @@
-# CEAL Medical Image Segmentation
-Cost Effective Active Learning algorithm to train a Convolutional Neural Network for medical image segmentation
+# Applying active learning for multimodal brain tumor segmentation
+
+Dataset - BraTS 2018
+Model - UNet
+Deep learning library - Keras

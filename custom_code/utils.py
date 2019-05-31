@@ -5,7 +5,7 @@ def entropy_rank(pred):
     en = np.zeros(len(pred))
 
     for i in range(0, len(pred)):
-        en[i] = sum(-pred[i] * np.log(pred[i]))
+        en[i] = np.sum(-pred[i] * np.log(pred[i]))
 
     return np.argsort(en)[::-1], en
 
@@ -24,18 +24,20 @@ def certain_set(en, thresh, initial_decay_rate, decay_rate):
     return np.where(en < thresh)[0], thresh
 
 
-def predictions_max_class(array, predictions, nb_classes):
-    max_class = np.zeros([len(array), nb_classes])
+def predictions_max_class(predictions, nb_classes):
+    max_class = np.zeros_like(predictions)
 
-    for i in range(0, len(array)):
-        max_class[i][np.argmax(predictions[array[i]])] = 1
+    for i in range(0, len(predictions)):
+        max_class[i] = 1
 
     return max_class
 
 
 def pseudo_label_error(pseudo_samples, true_samples):
     aux = 0
+    true = 0
     for i in range(0, len(pseudo_samples)):
-        if (pseudo_samples[i] == true_samples[i]).sum() != len(true_samples[i]):
-            aux += 1
-    return aux / len(true_samples)
+        if (np.sum(pseudo_samples[i]*true_samples[i]) != np.sum(true_samples[i])):
+            aux += np.sum(pseudo_samples[i])
+            true += np.sum(true_samples[i])
+    return aux / true

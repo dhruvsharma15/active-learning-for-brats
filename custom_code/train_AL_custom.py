@@ -3,21 +3,23 @@ from __future__ import print_function
 import os
 from datetime import datetime
 from time import time
+import numpy as np
 
 from keras.datasets import mnist
 from keras.utils import np_utils
 
-from cnn_net import *
+from unet import Unet_model
 from utils import *
-
+from uncertainty import *
+from batch_sampling import *
 
 def train_loop(X_train, y_train, X_test, y_test, nb_epochs, batch_size, iteration, log_file):
     for current_epoch in range(0, nb_epochs):
         print("Number of epoch: " + str(current_epoch + 1) + "/" + str(nb_epochs))
 
         model.fit(X_train, y_train, batch_size=batch_size,
-                  nb_epoch=1, validation_data=(X_test, y_test),
-                  verbose=2)  # <-- pensar en sets de validacio augmentables
+                  epochs=1, validation_data=(X_test, y_test),
+                  verbose=1)  # <-- pensar en sets de validacio augmentables
 
         score_train = model.evaluate(X_labeled_train, y_labeled_train, verbose=0)
         score_test = model.evaluate(X_test, y_test, verbose=0)
@@ -31,7 +33,7 @@ def train_loop(X_train, y_train, X_test, y_test, nb_epochs, batch_size, iteratio
 initial_time = time()
 # Paths
 
-model_name = "ceal_cnn_v1"
+model_name = "ceal_unet"
 model_path = "models/" + model_name + "/"
 logs_path = model_path + "/logs/"
 weights_path = "models/" + model_name + "/weights/"
@@ -46,55 +48,51 @@ if not os.path.exists(weights_path):
 
 # Data Loading and Preprocessing
 
-""" MNIST data:
+""" BraTS data:
     Train Set = 60,000 samples
     Validation Set = 10,000 samples """
 
-img_rows, img_cols = 28, 28
+Y_labels=np.load("../Brats_patches_data/y_dataset_first_part.npy").astype(np.uint8)[:150]
+X_patches=np.load("../Brats_patches_data/x_dataset_first_part.npy").astype(np.float32)[:150]
 
-(X_train, y_train), (X_test, y_test) = mnist.load_data()
-X_train = X_train.reshape(X_train.shape[0], img_rows, img_cols, 1)
-X_test = X_test.reshape(X_test.shape[0], img_rows, img_cols, 1)
-X_train = X_train.astype('float32')
-X_test = X_test.astype('float32')
-X_train /= 255
-X_test /= 255
+X_train = X_patches[:100]
+X_test = X_patches[100:]
+
 
 ##################################################
 
 # CEAL params
 
-nb_labeled = 600
+nb_labeled = 20
 nb_unlabeled = X_train.shape[0] - nb_labeled
 
-nb_iterations = 1
-nb_annotations = 200
+nb_iterations = 8
+nb_annotations = 10
 initial_decay_rate = 0.6
 decay_rate = 0.5
 thresh = None
 
-nb_initial_epochs = 1
-nb_active_epochs = 1
-batch_size = 128
+nb_initial_epochs = 2
+nb_active_epochs = 2
+batch_size = 4
 nb_classes = 10
 
 ##################################################
 
 # DB definition
 
-y_train = np_utils.to_categorical(y_train, nb_classes)
-y_test = np_utils.to_categorical(y_test, nb_classes)
+y_train = Y_labels[:100]
+y_test = Y_labels[100:]
 
 X_labeled_train = X_train[0:nb_labeled]
 y_labeled_train = y_train[0:nb_labeled]
-X_unlabeled_train = X_train[nb_labeled:len(X_train)]
+X_unlabeled_train = X_train[nb_labeled:]
 
 # (1) Initialize model
 iteration = 0
 
-model = ModelCNN()
-
-model.compile(loss='categorical_crossentropy', optimizer='adam', metrics=['accuracy'])
+unet = Unet_model(img_shape=(128,128,4))
+model = unet.compile_unet()
 
 data = datetime.now()
 f = open(logs_path + model_name + "_log" + str(data.month) + str(data.day) + str(data.hour) + str(data.minute),
@@ -114,34 +112,17 @@ for iteration in range(1, nb_iterations + 1):
     t = time()
     predictions = model.predict(X_unlabeled_train, verbose=0)
     print("Time elapsed: " + str(time() - t) + " s")
-
-    predictions_rank, en = entropy_rank(predictions)
-
-    # labeling by Oracle process: MNIST case
-    uncertain_samples = uncertain_set(predictions_rank, nb_annotations)
-    y_oracle_train = y_train[uncertain_samples]
-    X_oracle_train = X_unlabeled_train[uncertain_samples]
-    np.delete(X_unlabeled_train, uncertain_samples)
-    np.delete(en, uncertain_samples)
-
-    # pseudo-labeling
-    certain_samples, thresh = certain_set(en, thresh, initial_decay_rate, decay_rate)
-
-    #certain_samples, thresh = certain_set(en, thresh, 4)
-
-    print("Thresh = " + str(thresh))
-    print("Certain samples = " + str(len(certain_samples)))
-
-    X_pseudo_train = X_unlabeled_train[certain_samples]
-    y_pseudo_train = predictions_max_class(predictions[certain_samples], nb_classes)
-
-    print("Pseudo_labeling error = "+str(pseudo_label_error(y_pseudo_train,y_train[nb_labeled+certain_samples])))
-
-    X_labeled_train_aux = np.concatenate((X_labeled_train, X_oracle_train, X_pseudo_train))
-    y_labeled_train_aux = np.concatenate((y_labeled_train, y_oracle_train, y_pseudo_train))
+    
+#    uncertain_idx, uncertain_samples  = uncertainty_sampling(model, X_unlabeled_train, n_instances=nb_annotations)
+    uncertain_idx, uncertain_samples = uncertainty_batch_sampling(model, X_unlabeled_train, 
+                                                                  X_labeled_train, n_instances = nb_annotations)
+        
+    y_oracle_train = y_train[uncertain_idx]
+    X_oracle_train = X_unlabeled_train[uncertain_idx]
+    np.delete(X_unlabeled_train, uncertain_idx)
 
     # (3) Training
-    train_loop(X_labeled_train_aux, y_labeled_train_aux, X_test, y_test, nb_active_epochs, batch_size, iteration, f)
+    train_loop(X_oracle_train, y_oracle_train, X_test, y_test, nb_active_epochs, batch_size, iteration, f)
     X_labeled_train = np.concatenate((X_labeled_train, X_oracle_train))
     y_labeled_train = np.concatenate((y_labeled_train, y_oracle_train))
 
