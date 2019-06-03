@@ -11,6 +11,7 @@ Uncertainty measures that explicitly support batch-mode sampling for active lear
 """
 
 from typing import Callable, Optional, Tuple, Union
+from tqdm import tqdm
 
 import numpy as np
 import scipy.sparse as sp
@@ -121,7 +122,7 @@ def ranked_batch(classifier,
     # mask for unlabeled initialized as transparent
     mask = np.ones(unlabeled.shape[0], np.bool)
 
-    for _ in range(ceiling):
+    for _ in tqdm(range(ceiling)):
 
         # Receive the instance and corresponding index from our unlabeled copy that scores highest.
         instance_index, instance, mask = select_instance(X_training=labeled, X_pool=unlabeled,
@@ -142,7 +143,6 @@ def ranked_batch(classifier,
 
 def uncertainty_batch_sampling(model: Model,
                                X_u: Union[np.ndarray, sp.csr_matrix],
-                               X_l: Union[np.ndarray, sp.csr_matrix],
                                n_instances: int = 20,
                                metric: Union[str, Callable] = 'euclidean',
                                n_jobs: Optional[int] = None,
@@ -172,7 +172,7 @@ def uncertainty_batch_sampling(model: Model,
     Returns:
         Indices of the instances from `X` chosen to be labelled; records from `X` chosen to be labelled.
     """
-    uncertainty = segmentation_uncertainty(model, X_u, **uncertainty_measure_kwargs)
-    query_indices = ranked_batch(model, labeled=X_l, unlabeled=X_u, uncertainty_scores=uncertainty,
+    uncertainty = segmentation_entropy(model, X_u, **uncertainty_measure_kwargs)
+    query_indices = ranked_batch(model, labeled=model.X_training, unlabeled=X_u, uncertainty_scores=uncertainty,
                                  n_instances=n_instances, metric=metric, n_jobs=n_jobs)
     return query_indices, X_u[query_indices]

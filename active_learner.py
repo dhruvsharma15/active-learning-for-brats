@@ -6,8 +6,24 @@ Created on Fri May 31 12:06:41 2019
 @author: dhruv.sharma
 """
 
+import keras.backend as K
+from keras.callbacks import  ModelCheckpoint,Callback
+
 import numpy as np
 from strategies.uncertainty import uncertainty_sampling
+
+class SGDLearningRateTracker(Callback):
+    def on_epoch_begin(self, epoch, logs={}):
+        optimizer = self.model.optimizer
+        lr = K.get_value(optimizer.lr)
+        decay = K.get_value(optimizer.decay)
+        lr=lr/10
+        decay=decay*10
+        K.set_value(optimizer.lr, lr)
+        K.set_value(optimizer.decay, decay)
+        print('LR changed to:',lr)
+        print('Decay changed to:',decay)
+
 
 class ActiveLearner():
     '''
@@ -72,7 +88,8 @@ class ActiveLearner():
         Returns:
             self
         """
-        self.model.fit(self.X_training, self.y_training, **fit_kwargs)
+        checkpointer = ModelCheckpoint(filepath='trained_weights/ResUnet.{epoch:02d}.hdf5', verbose=1)
+        self.model.fit(self.X_training, self.y_training, callbacks = [checkpointer,SGDLearningRateTracker()], **fit_kwargs)
 
         return self
 
@@ -88,7 +105,8 @@ class ActiveLearner():
         Returns:
             self
         """
-        self.model.fit(X, y, **fit_kwargs)
+        checkpointer = ModelCheckpoint(filepath='trained_weights/ResUnet.{epoch:02d}.hdf5', verbose=1)
+        self.model.fit(X, y, callbacks = [checkpointer,SGDLearningRateTracker()], **fit_kwargs)
       
         return self
 

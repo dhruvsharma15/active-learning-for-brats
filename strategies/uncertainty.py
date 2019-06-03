@@ -11,6 +11,7 @@ Uncertainty measures and uncertainty based sampling strategies for the active le
 """
 import numpy as np
 from sklearn.exceptions import NotFittedError
+from scipy.special import entr
 
 
 def segmentation_uncertainty(model, X):
@@ -77,8 +78,7 @@ def segmentation_entropy(model, X):
     except NotFittedError:
         return np.zeros(shape=(X.shape[0], ))
 
-    log_X = np.log(X)
-    entropy = np.mean(np.sum(-1*X*log_X, axis = len(X.shape)-1), axis = (1,2))
+    entropy = np.mean(entr(segment_uncertainty).sum(axis= len(X.shape)-1), axis = (1,2))
     
     return entropy
 
