@@ -19,6 +19,7 @@ def main():
     
     Y_labels=np.load("../Brats_patches_data/y_dataset_first_part.npy").astype(np.uint8)[:150]
     X_patches=np.load("../Brats_patches_data/x_dataset_first_part.npy").astype(np.float32)[:150]
+    model_to_load="pretrained_weights/ResUnet.epoch_02.hdf5" 
     
     X_train = X_patches[:100]
     X_test = X_patches[100:]
@@ -55,6 +56,7 @@ def main():
     
     unet = Unet_model(img_shape=(128,128,4))
     model = unet.compile_unet()
+    model.load_weights(model_to_load)
         
     # Active loop
     learner = ActiveLearner(model = model,
