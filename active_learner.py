@@ -95,9 +95,9 @@ class ActiveLearner():
         """
         checkpointer = ModelCheckpoint(filepath='trained_weights/ResUnet.{epoch:02d}.hdf5', verbose=1)
         validation_data = None
-        if(self.X_val!=None and self.y_val != None):
+        if(self.X_val is not None and self.y_val is not None):
             validation_data = (self.X_val, self.y_val)
-        self.model.fit(self.X_training, self.y_training, validation_data = validation_data, verbose = 1, callbacks = [checkpointer,SGDLearningRateTracker()], **fit_kwargs)
+        self.model.fit(self.X_training, self.y_training, validation_data = validation_data, callbacks = [checkpointer,SGDLearningRateTracker()], **fit_kwargs)
 
         return self
 
@@ -115,9 +115,9 @@ class ActiveLearner():
         """
         checkpointer = ModelCheckpoint(filepath='trained_weights/ResUnet.{epoch:02d}.hdf5', verbose=1)
         validation_data = None
-        if(self.X_val!=None and self.y_val != None):
+        if(self.X_val is not None and self.y_val is not None):
             validation_data = (self.X_val, self.y_val)
-        self.model.fit(X, y, validation_data = validation_data, verbose = 1, callbacks = [checkpointer,SGDLearningRateTracker()], **fit_kwargs)
+        self.model.fit(X, y, validation_data = validation_data, callbacks = [checkpointer,SGDLearningRateTracker()], **fit_kwargs)
       
         return self
 

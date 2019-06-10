@@ -11,7 +11,7 @@ from functools import partial
 from keras.utils import np_utils
 
 from active_learner import ActiveLearner
-from unet import Unet_model
+from model import Unet_model
 from strategies.uncertainty import *
 from strategies.batch_sampling import uncertainty_batch_sampling
 
@@ -19,15 +19,15 @@ def main():
     
     # Data Loading and Preprocessing
     
-    Y_labels=np.load("../Brats_patches_data/y_train.npy").astype(np.uint8)
-    X_patches=np.load("../Brats_patches_data/x_train.npy").astype(np.float32)
+    Y_labels=np.load("../Brats_patches_data/y_train_small.npy").astype(np.uint8)
+    X_patches=np.load("../Brats_patches_data/x_train_small.npy").astype(np.float32)
     model_to_load=None
     print("Data shape:",X_patches.shape)
 #    X_train = X_patches[:100]
 #    X_test = X_patches[100:]
     
-    Y_valid = np.load("../Brats_patches_data/y_val.npy").astype(np.uint8)
-    X_valid = np.load("../Brats_patches_data/x_val.npy").astype(np.float32)
+    Y_valid = np.load("../Brats_patches_data/y_val_small.npy").astype(np.uint8)[:50]
+    X_valid = np.load("../Brats_patches_data/x_val_small.npy").astype(np.float32)[:50]
     
     
     ##################################################
@@ -42,8 +42,8 @@ def main():
     nb_annotations = 100
 
     
-    nb_initial_epochs = 5
-    nb_active_epochs = 5
+    nb_initial_epochs = 1
+    nb_active_epochs = 1
     batch_size = 4
 
     ##################################################
@@ -61,8 +61,7 @@ def main():
     # (1) Initialize model
     
     unet = Unet_model(img_shape=(128,128,4))
-    model = unet.compile_unet()
-    model.load_weights(model_to_load)
+    model = unet.model
         
     # Active loop
     preset_batch = partial(uncertainty_batch_sampling, n_instances=nb_annotations)
