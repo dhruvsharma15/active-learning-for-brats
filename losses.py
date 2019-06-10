@@ -1,5 +1,6 @@
 import numpy as np
 import keras.backend as K
+import tensorflow as tf
 
 
 def dice(y_true, y_pred):
@@ -41,11 +42,11 @@ def dice_core_metric(y_true, y_pred):
     y_pred_f = K.reshape(y_pred,shape=(-1,4))
     
     #workaround for tf
-    #y_core=K.sum(tf.gather(y_true_f, [1,3],axis =1),axis=1)
-    #p_core=K.sum(tf.gather(y_pred_f, [1,3],axis =1),axis=1)
+    y_core=K.sum(tf.gather(y_true_f, [1,3],axis =1),axis=1)
+    p_core=K.sum(tf.gather(y_pred_f, [1,3],axis =1),axis=1)
     
-    y_core=K.sum(y_true_f[:,[1,3]],axis=1)
-    p_core=K.sum(y_pred_f[:,[1,3]],axis=1)
+#    y_core=K.sum(y_true_f[:,[1,3]],axis=1)
+#    p_core=K.sum(y_pred_f[:,[1,3]],axis=1)
     dice_core=dice(y_core,p_core)
     return dice_core
 

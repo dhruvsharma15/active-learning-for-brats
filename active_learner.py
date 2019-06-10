@@ -40,6 +40,8 @@ class ActiveLearner():
                 model,
                 X_training,
                 y_training,
+                X_val = None,
+                y_val = None,
                 query_strategy=uncertainty_sampling,
                 **fit_kwargs
                 ):
@@ -50,6 +52,9 @@ class ActiveLearner():
         
         self.X_training = X_training
         self.y_training = y_training
+        
+        self.X_val = X_val
+        self.y_val = y_val
         
         if self.X_training is not None:
             self._fit_to_known(**fit_kwargs)
@@ -89,7 +94,10 @@ class ActiveLearner():
             self
         """
         checkpointer = ModelCheckpoint(filepath='trained_weights/ResUnet.{epoch:02d}.hdf5', verbose=1)
-        self.model.fit(self.X_training, self.y_training, callbacks = [checkpointer,SGDLearningRateTracker()], **fit_kwargs)
+        validation_data = None
+        if(self.X_val!=None and self.y_val != None):
+            validation_data = (self.X_val, self.y_val)
+        self.model.fit(self.X_training, self.y_training, validation_data = validation_data, verbose = 1, callbacks = [checkpointer,SGDLearningRateTracker()], **fit_kwargs)
 
         return self
 
@@ -106,7 +114,10 @@ class ActiveLearner():
             self
         """
         checkpointer = ModelCheckpoint(filepath='trained_weights/ResUnet.{epoch:02d}.hdf5', verbose=1)
-        self.model.fit(X, y, callbacks = [checkpointer,SGDLearningRateTracker()], **fit_kwargs)
+        validation_data = None
+        if(self.X_val!=None and self.y_val != None):
+            validation_data = (self.X_val, self.y_val)
+        self.model.fit(X, y, validation_data = validation_data, verbose = 1, callbacks = [checkpointer,SGDLearningRateTracker()], **fit_kwargs)
       
         return self
 

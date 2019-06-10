@@ -1,10 +1,9 @@
+from __future__ import print_function
 import os
-os.environ["CUDA_DEVICE_ORDER"]="PCI_BUS_ID";
+os.environ["CUDA_DEVICE_ORDER"]="PCI_BUS_ID"
  
 # The GPU id to use, usually either "0" or "1";
-os.environ["CUDA_VISIBLE_DEVICES"]="0";  
-
-from __future__ import print_function
+os.environ["CUDA_VISIBLE_DEVICES"]="0"
 
 import numpy as np
 from functools import partial
@@ -20,12 +19,15 @@ def main():
     
     # Data Loading and Preprocessing
     
-    Y_labels=np.load("../Brats_patches_data/y_dataset_first_part.npy").astype(np.uint8)
-    X_patches=np.load("../Brats_patches_data/x_dataset_first_part.npy").astype(np.float32)
-    model_to_load="pretrained_weights/ResUnet.epoch_02.hdf5" 
+    Y_labels=np.load("../Brats_patches_data/y_train.npy").astype(np.uint8)
+    X_patches=np.load("../Brats_patches_data/x_train.npy").astype(np.float32)
+    model_to_load=None
     print("Data shape:",X_patches.shape)
 #    X_train = X_patches[:100]
 #    X_test = X_patches[100:]
+    
+    Y_valid = np.load("../Brats_patches_data/y_val.npy").astype(np.uint8)
+    X_valid = np.load("../Brats_patches_data/x_val.npy").astype(np.float32)
     
     
     ##################################################
@@ -69,6 +71,8 @@ def main():
                             query_strategy = preset_batch,
                             X_training = X_labeled_train,
                             y_training = y_labeled_train,
+                            X_val = X_valid,
+                            y_val = Y_valid,
                             verbose = 1, epochs = nb_initial_epochs,
                             batch_size = batch_size
                             )

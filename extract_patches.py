@@ -11,6 +11,7 @@ class Pipeline(object):
     def __init__(self, list_train ,Normalize=True):
         self.scans_train = list_train
         self.train_im=self.read_scans(Normalize)
+        print(self.train_im.shape)
 
         
     def read_scans(self,Normalize):
