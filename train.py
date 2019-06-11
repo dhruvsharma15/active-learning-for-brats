@@ -9,11 +9,20 @@ import numpy as np
 from functools import partial
 
 from keras.utils import np_utils
+import keras.backend as K
+import tensorflow as tf
 
 from active_learner import ActiveLearner
 from model import Unet_model
 from strategies.uncertainty import *
 from strategies.batch_sampling import uncertainty_batch_sampling
+
+config = tf.ConfigProto(intra_op_parallelism_threads=8,
+                        inter_op_parallelism_threads=8,
+                        allow_soft_placement=True,
+                        device_count = {'CPU': 8})
+session = tf.Session(config=config)
+K.set_session(session)
 
 def main():
     
@@ -31,9 +40,7 @@ def main():
     
     
     ##################################################
-    
-    # CEAL params
-    
+        
     nb_labeled = 200
 #    nb_unlabeled = X_patches.shape[0] - nb_labeled
     initial_idx = np.random.choice(range(len(X_patches)), size=nb_labeled, replace=False)
@@ -62,6 +69,7 @@ def main():
     
     unet = Unet_model(img_shape=(128,128,4))
     model = unet.model
+    
         
     # Active loop
     preset_batch = partial(uncertainty_batch_sampling, n_instances=nb_annotations)
