@@ -30,13 +30,15 @@ def main():
     
     Y_labels=np.load("../Brats_patches_data/y_train_small.npy").astype(np.uint8)
     X_patches=np.load("../Brats_patches_data/x_train_small.npy").astype(np.float32)
-    model_to_load=None
     print("Data shape:",X_patches.shape)
 #    X_train = X_patches[:100]
 #    X_test = X_patches[100:]
     
-    Y_valid = np.load("../Brats_patches_data/y_val_small.npy").astype(np.uint8)[:50]
-    X_valid = np.load("../Brats_patches_data/x_val_small.npy").astype(np.float32)[:50]
+    Y_valid = np.load("../Brats_patches_data/y_val.npy").astype(np.uint8)
+    X_valid = np.load("../Brats_patches_data/x_val.npy").astype(np.float32)
+    
+    Y_test = np.load("../Brats_patches_data/y_test.npy").astype(np.uint8)
+    X_test = np.load("../Brats_patches_data/x_test.npy").astype(np.float32)
     
     
     ##################################################
@@ -49,8 +51,8 @@ def main():
     nb_annotations = 100
 
     
-    nb_initial_epochs = 1
-    nb_active_epochs = 1
+    nb_initial_epochs = 5
+    nb_active_epochs = 5
     batch_size = 4
 
     ##################################################
@@ -95,6 +97,19 @@ def main():
         # remove queried instance from pool
         X_pool = np.delete(X_pool, query_idx, axis=0)
         y_pool = np.delete(y_pool, query_idx, axis=0)
+        
+    ############### testing #######################
+    model_path = './trained_weights/'
+    model_weight_paths = sorted(os.listdir(model_path))[-1]
     
+    print('testing the model')
+    
+    weights_path = model_path + model_weight_paths
+
+    val_output = learner.evaluate(X = X_test, y = Y_test, model_path=weights_path, batch_size=4, verbose=1)
+    
+    for i in range(len(learner.model.metrics_names)):
+        print(learner.model.metrics_names[i], val_output[i])
+        
 if __name__ == '__main__':
     main()

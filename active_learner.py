@@ -150,6 +150,23 @@ class ActiveLearner():
         """
         return self.model.predict(X, **predict_kwargs)
     
+    def evaluate(self, X, y, model_path, **evalute_kwargs):
+        """
+        model evaluation for X. Interface with the evaluate method of the estimator.
+
+        Args:
+            X: The samples to be evaluated.
+            y: ground truth for the samples.
+            model_path: path for weights to be restored
+            **evaluate_kwargs: Keyword arguments to be passed to the evaluate method of the estimator.
+
+        Returns:
+            model metrics after evaluation of X.
+        """
+        self.model.load_weights(model_path)
+        return self.model.evaluate(X, y, **evalute_kwargs)
+        
+    
     def query(self, *query_args, **query_kwargs):
         """
         Finds the n_instances most informative point in the data provided by calling the query_strategy function.
