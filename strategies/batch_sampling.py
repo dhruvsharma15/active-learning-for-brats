@@ -23,10 +23,12 @@ from strategies.uncertainty import *
 def select_instance(
         X_training,
         X_pool,
+        X_training_feat,
+        X_pool_feat,
         X_uncertainty: np.ndarray,
         mask: np.ndarray,
         metric: Union[str, Callable],
-        n_jobs: Union[int, None]):
+        n_jobs : Union[int, None] = -1):
     """
     Core iteration strategy for selecting another record from our unlabeled records.
 
@@ -42,6 +44,8 @@ def select_instance(
     Args:
         X_training: Mix of both labeled and unlabeled records.
         X_pool: Unlabeled records to be selected for labeling.
+        X_training_feat: feature vectors for the training data
+        X_pool_feat: feature vectors for the unlabeld data
         X_uncertainty: Uncertainty scores for unlabeled records to be selected for labeling.
         mask: Mask to exclude previously selected instances from the pool.
         metric: This parameter is passed to :func:`~sklearn.metrics.pairwise.pairwise_distances`.
@@ -71,12 +75,17 @@ def select_instance(
     Returns:
         pairwise distance between the two points
     '''
-    X_pool_reshaped = X_pool[mask].reshape((len(X_pool[mask]), -1))
-    X_training_reshaped = X_training.reshape((len(X_training), -1))
-    if n_jobs == 1 or n_jobs is None:
-        _, distance_scores = pairwise_distances_argmin_min(X_pool_reshaped, X_training_reshaped, metric=metric)
+    if X_pool_feat is None or X_training_feat is None:
+        X_pool_features = X_pool[mask].reshape((len(X_pool[mask]), -1))
+        X_training_features = X_training.reshape((len(X_training), -1))
     else:
-        distance_scores = pairwise_distances(X_pool_reshaped, X_training_reshaped, metric=metric, n_jobs=n_jobs).min(axis=1)
+        X_pool_features = X_pool_feat[mask]
+        X_training_features = X_training_feat
+        
+    if n_jobs == 1 or n_jobs is None:
+        _, distance_scores = pairwise_distances_argmin_min(X_pool_features, X_training_features, metric=metric)
+    else:
+        distance_scores = pairwise_distances(X_pool_features, X_training_features, metric=metric, n_jobs=n_jobs).min(axis=1)
     ############################################################################################################
     
     similarity_scores = 1 / (1 + distance_scores)
@@ -94,6 +103,8 @@ def select_instance(
 def ranked_batch(classifier,
                  labeled,
                  unlabeled,
+                 X_training_feat,
+                 X_pool_feat,
                  uncertainty_scores: np.ndarray,
                  n_instances: int,
                  metric: Union[str, Callable],
@@ -105,8 +116,11 @@ def ranked_batch(classifier,
         https://www.sciencedirect.com/science/article/pii/S0020025516313949
 
     Args:
-        classifier: One of modAL's supported active learning models.
+        classifier: active learner supported active learning models.
+        labeled: the labeled dataset
         unlabeled: Set of records to be considered for our active learning model.
+        X_training_feat: feature vectors of the labeled dataset
+        X_pool_feat: feature vectors of the unlabeled dataset
         uncertainty_scores: Our classifier's predictions over the response variable.
         n_instances: Limit on the number of records to query from our unlabeled set.
         metric: This parameter is passed to :func:`~sklearn.metrics.pairwise.pairwise_distances`.
@@ -125,14 +139,20 @@ def ranked_batch(classifier,
     for _ in tqdm(range(ceiling)):
 
         # Receive the instance and corresponding index from our unlabeled copy that scores highest.
-        instance_index, instance, mask = select_instance(X_training=labeled, X_pool=unlabeled,
-                                                         X_uncertainty=uncertainty_scores, mask=mask,
-                                                         metric=metric, n_jobs=n_jobs)
+        instance_index, instance, mask = select_instance(X_training=labeled, 
+                                                         X_pool=unlabeled,
+                                                         X_training_feat=X_training_feat,
+                                                         X_pool_feat=X_pool_feat,
+                                                         X_uncertainty=uncertainty_scores, 
+                                                         mask=mask,
+                                                         metric=metric, 
+                                                         n_jobs=n_jobs)
 
         # Add our instance we've considered for labeling to our labeled set. Although we don't
         # know it's label, we want further iterations to consider the newly-added instance so
         # that we don't query the same instance redundantly.
         labeled = np.concatenate((labeled, np.array([instance])))
+        X_training_feat = np.concatenate((X_training_feat, np.array([X_pool_feat[instance_index]])))
 
         # Finally, append our instance's index to the bottom of our ranking.
         instance_index_ranking.append(instance_index)
@@ -143,6 +163,8 @@ def ranked_batch(classifier,
 
 def uncertainty_batch_sampling(model: Model,
                                X_u: Union[np.ndarray, sp.csr_matrix],
+                               features_labeled = None,
+                               features_unlabeled = None,
                                n_instances: int = 20,
                                metric: Union[str, Callable] = 'euclidean',
                                n_jobs: Optional[int] = None,
@@ -163,6 +185,8 @@ def uncertainty_batch_sampling(model: Model,
     Args:
         classifier: One of modAL's supported active learning models.
         X: Set of records to be considered for our active learning model.
+        features_labeled: feature vectors of the labeled data to be used for similarity matrix computation.
+        features_unlabeled: feature vectors of the unlabeled data to be used for similarity matrix computation.
         n_instances: Number of records to return for labeling from `X`.
         metric: This parameter is passed to :func:`~sklearn.metrics.pairwise.pairwise_distances`
         n_jobs: If not set, :func:`~sklearn.metrics.pairwise.pairwise_distances_argmin_min` is used for calculation of
@@ -172,7 +196,14 @@ def uncertainty_batch_sampling(model: Model,
     Returns:
         Indices of the instances from `X` chosen to be labelled; records from `X` chosen to be labelled.
     """
-    uncertainty = segmentation_entropy(model, X_u, **uncertainty_measure_kwargs)
-    query_indices = ranked_batch(model, labeled=model.X_training, unlabeled=X_u, uncertainty_scores=uncertainty,
-                                 n_instances=n_instances, metric=metric, n_jobs=n_jobs)
+    uncertainty = segmentation_uncertainty(model, X_u, **uncertainty_measure_kwargs)
+    query_indices = ranked_batch(model, 
+                                 labeled=model.X_training, 
+                                 unlabeled=X_u,
+                                 X_training_feat = features_labeled,
+                                 X_pool_feat = features_unlabeled,
+                                 uncertainty_scores=uncertainty,
+                                 n_instances=n_instances, 
+                                 metric=metric, 
+                                 n_jobs=n_jobs)
     return query_indices, X_u[query_indices]

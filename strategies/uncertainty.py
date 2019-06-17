@@ -83,59 +83,59 @@ def segmentation_entropy(model, X):
     return entropy
 
 
-def uncertainty_sampling(model, X, n_instances = 1):
+def uncertainty_sampling(model, X_u, n_instances = 1):
     """
     Uncertainty sampling query strategy. Selects the least sure instances for labelling.
 
     Args:
         model: The model for which the labels are to be queried.
-        X: The pool of samples to query from.
+        X_u: The pool of samples to query from.
         n_instances: Number of samples to be queried.
 
     Returns:
         The indices of the instances from X chosen to be labelled;
-        the instances from X chosen to be labelled.
+        the instances from X_u chosen to be labelled.
     """
-    uncertainty = segmentation_uncertainty(model, X)
+    uncertainty = segmentation_uncertainty(model, X_u)
     query_idx = np.argpartition(-uncertainty, n_instances-1, axis=0)[:n_instances]
 
-    return query_idx, X[query_idx]
+    return query_idx, X_u[query_idx]
 
 
-def margin_sampling(model, X, n_instances = 1):
+def margin_sampling(model, X_u, n_instances = 1):
     """
     Margin sampling query strategy. Selects the instances where the difference between
     the first most likely and second most likely classes are the smallest.
     Args:
         model: The model for which the labels are to be queried.
-        X: The pool of samples to query from.
+        X_u: The pool of samples to query from.
         n_instances: Number of samples to be queried.
         
     Returns:
         The indices of the instances from X chosen to be labelled;
-        the instances from X chosen to be labelled.
+        the instances from X_u chosen to be labelled.
     """
-    margin = segmentation_margin(model, X)
+    margin = segmentation_margin(model, X_u)
     query_idx = np.argpartition(-margin, n_instances-1, axis=0)[:n_instances]
 
-    return query_idx, X[query_idx]
+    return query_idx, X_u[query_idx]
 
 
-def entropy_sampling(model, X, n_instances = 1):
+def entropy_sampling(model, X_u, n_instances = 1):
     """
     Entropy sampling query strategy. Selects the instances where the class probabilities
     have the largest entropy.
 
     Args:
         model: The model for which the labels are to be queried.
-        X: The pool of samples to query from.
+        X_u: The pool of samples to query from.
         n_instances: Number of samples to be queried
 
     Returns:
         The indices of the instances from X chosen to be labelled;
         the instances from X chosen to be labelled.
     """
-    entropy = segmentation_entropy(model, X)
+    entropy = segmentation_entropy(model, X_u)
     query_idx = np.argpartition(-entropy, n_instances-1, axis=0)[:n_instances]
 
-    return query_idx, X[query_idx]
+    return query_idx, X_u[query_idx]

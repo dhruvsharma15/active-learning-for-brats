@@ -11,14 +11,15 @@ from keras.callbacks import  ModelCheckpoint,Callback
 
 import numpy as np
 from strategies.uncertainty import uncertainty_sampling
+from model import Unet_model
 
 class SGDLearningRateTracker(Callback):
     def on_epoch_begin(self, epoch, logs={}):
         optimizer = self.model.optimizer
         lr = K.get_value(optimizer.lr)
         decay = K.get_value(optimizer.decay)
-        lr=lr/10
-        decay=decay*10
+        lr=lr/2
+        decay=decay*2
         K.set_value(optimizer.lr, lr)
         K.set_value(optimizer.decay, decay)
         print('LR changed to:',lr)
@@ -93,6 +94,7 @@ class ActiveLearner():
         Returns:
             self
         """
+        self.model = Unet_model(img_shape=(128,128,4)).model
         checkpointer = ModelCheckpoint(filepath='trained_weights/ResUnet.{epoch:02d}.hdf5', verbose=1)
         validation_data = None
         if(self.X_val is not None and self.y_val is not None):
@@ -150,7 +152,7 @@ class ActiveLearner():
         """
         return self.model.predict(X, **predict_kwargs)
     
-    def evaluate(self, X, y, model_path, **evalute_kwargs):
+    def evaluate(self, X, y, model_path=None, **evalute_kwargs):
         """
         model evaluation for X. Interface with the evaluate method of the estimator.
 
@@ -163,7 +165,8 @@ class ActiveLearner():
         Returns:
             model metrics after evaluation of X.
         """
-        self.model.load_weights(model_path)
+        if model_path is not None:
+            self.model.load_weights(model_path)
         return self.model.evaluate(X, y, **evalute_kwargs)
         
     
