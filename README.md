@@ -28,12 +28,12 @@ To run the code, you first need to install the following prerequisites:
 
 ### How to run
 
-1. Execute first `extract_patches.py` to prepare the training and validation datasets.
-2. then `train.py` to train the model.
-3. `predict.py` to make final predictions.
+Git clone this repository in the same directory as your BraTS data - `Brats2018_training`.
+
+1. Execute first `extract_patches.py` to prepare the training and validation datasets which will be saved in the `Brats_patches_data` directory.
+2. then `train.py` to train the model. The trained weights will be saved in the directory `brain_segmentation`.
 
 ```
 python extract_patches.py
 python train.py
-python predict.py
 ```
