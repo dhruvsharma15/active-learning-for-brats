@@ -37,3 +37,71 @@ Git clone this repository in the same directory as your BraTS data - `Brats2018_
 python extract_patches.py
 python train.py
 ```
+
+To use one of the query strategies:
+1. Import the strategy module in your code and understand its documentation to know what it takes as input and what it returns.
+2. Pass the parameters appropriately.
+
+Example:
+
+Make the neccesary imports and define the dataset. Uncertainty sampling query strategy is used here.
+```
+from active_learner import ActiveLearner
+from strategies.uncertainty import *
+import numpy as np
+
+Y_labels = #... labels ...
+X_patches = #... data points ...
+```
+
+Define the hyperparameters and define the labeled and the unlabeled pool of data.
+```
+nb_labeled = 2000
+
+initial_ idx = np.random.choice(range(len(X_patches)), size=nb_labeled, replace=False)
+
+nb_iterations = 10
+nb_annotations = 500
+
+
+nb_ initial_epochs = 10
+nb_ active_epochs = 10
+batch_size = 4
+
+X_labeled_train = X_patches[initial_idx]
+y_labeled_train = Y_labels[initial_idx]
+
+X_pool = np.delete(X_patches, initial_idx, axis=0)
+y_pool = np.delete(Y_labels, initial_idx, axis=0)
+
+model = #your keras model
+```
+
+Active Learning loop
+```
+learner = ActiveLearner(model = model,
+		        query_strategy = uncertainty_sampling,
+		        X_training = X_labeled_train,
+		        y_training = y_labeled_train,
+		        verbose = 1, epochs = nb_initial_epochs,
+		        batch_size = batch_size
+		        )
+
+
+for idx in range(nb_iterations):
+	print('Query no. %d' % (idx + 1))
+	print('Training data shape', learner.X_training.shape)
+	print('Unlabeled data shape', X_pool.shape)
+	query_idx, query_instance = learner.query(X_u=X_pool, n_instances = nb_annotations)
+
+	learner.teach(
+	    X=X_pool[query_idx], y=y_pool[query_idx], only_new=False,
+	    verbose=1, epochs = nb_active_epochs, batch_size = batch_size
+	)
+	# remove queried instance from pool
+	X_pool = np.delete(X_pool, query_idx, axis=0)
+	y_pool = np.delete(y_pool, query_idx, axis=0)
+        
+```
+
+
