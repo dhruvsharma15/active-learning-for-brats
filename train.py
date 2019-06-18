@@ -98,11 +98,16 @@ def main():
     ################################
     
     for idx in range(nb_iterations):
+#        print('#####')
+#        print('#####')
+#        print('#####')
+#        print('#####')
+#        print(learner.model.summary())
         
         ## features of the labeled and the unlabeled pool ############
         print('extracting features from the encoder of the UNet')
         
-        layer_name = 'conv2d_35'
+        layer_name = 'conv2d_11'
         n_dims = min(1024,min(len(learner.X_training), len(X_pool)))
         intermediate_layer_model = Model(inputs=learner.model.input,
                                          outputs=learner.model.get_layer(layer_name).output)

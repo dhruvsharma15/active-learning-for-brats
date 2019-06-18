@@ -8,10 +8,10 @@ Created on Fri May 31 12:06:41 2019
 
 import keras.backend as K
 from keras.callbacks import  ModelCheckpoint,Callback
+import tensorflow as tf 
 
 import numpy as np
 from strategies.uncertainty import uncertainty_sampling
-from model import Unet_model
 
 class SGDLearningRateTracker(Callback):
     def on_epoch_begin(self, epoch, logs={}):
@@ -94,7 +94,12 @@ class ActiveLearner():
         Returns:
             self
         """
-        self.model = Unet_model(img_shape=(128,128,4)).model
+        
+
+        K.get_session().close()
+        K.set_session(tf.Session())
+        K.get_session().run(tf.global_variables_initializer())
+
         checkpointer = ModelCheckpoint(filepath='trained_weights/ResUnet.{epoch:02d}.hdf5', verbose=1)
         validation_data = None
         if(self.X_val is not None and self.y_val is not None):
