@@ -58,14 +58,14 @@ Define the hyperparameters and define the labeled and the unlabeled pool of data
 ```
 nb_labeled = 2000
 
-initial_ idx = np.random.choice(range(len(X_patches)), size=nb_labeled, replace=False)
+initial_idx = np.random.choice(range(len(X_patches)), size=nb_labeled, replace=False)
 
 nb_iterations = 10
 nb_annotations = 500
 
 
-nb_ initial_epochs = 10
-nb_ active_epochs = 10
+nb_initial_epochs = 10
+nb_active_epochs = 10
 batch_size = 4
 
 X_labeled_train = X_patches[initial_idx]
