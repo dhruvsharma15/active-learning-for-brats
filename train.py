@@ -98,12 +98,7 @@ def main():
     ################################
     
     for idx in range(nb_iterations):
-#        print('#####')
-#        print('#####')
-#        print('#####')
-#        print('#####')
-#        print(learner.model.summary())
-        
+        nb_active_epochs = nb_active_epochs + 2
         ## features of the labeled and the unlabeled pool ############
         print('extracting features from the encoder of the UNet')
         
@@ -139,6 +134,7 @@ def main():
             verbose=1, epochs = nb_active_epochs, batch_size = batch_size
         )
         # remove queried instance from pool
+        print("patches annotated: ", X_pool[query_idx].shape)
         X_pool = np.delete(X_pool, query_idx, axis=0)
         y_pool = np.delete(y_pool, query_idx, axis=0)
         
