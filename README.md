@@ -30,19 +30,21 @@ To run the code, you first need to install the following prerequisites:
 
 Git clone this repository in the same directory as your BraTS data - `Brats2018_training`.
 
-1. Execute first `extract_patches.py` to prepare the training and validation datasets which will be saved in the `Brats_patches_data` directory.
+1. Execute first `extract_patches.py` to prepare the training, validation, and testing datasets which will be saved in the `Brats_patches_data` directory. This also segregates the images into three different folders, one for each split, which can later be utilized for generating the predictions.
 2. then `train.py` to train the model. The trained weights will be saved in the directory `brain_segmentation`.
+3. Use `predict.py` to run prediction on the dataset. Define the path to folder where the dataset to be predicted is stored. 
 
 ```
 python extract_patches.py
 python train.py
+python predict.py
 ```
 
 To use one of the query strategies:
 1. Import the strategy module in your code and understand its documentation to know what it takes as input and what it returns.
 2. Pass the parameters appropriately.
 
-Example:
+Sample of how to use the Active Learning framework with your model:
 
 Make the neccesary imports and define the dataset. Uncertainty sampling query strategy is used here.
 ```

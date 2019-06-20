@@ -1,9 +1,50 @@
+import os
+os.environ["CUDA_DEVICE_ORDER"]="PCI_BUS_ID"
+ 
+# The GPU id to use, usually either "0" or "1";
+os.environ["CUDA_VISIBLE_DEVICES"]="0"
+
 import random
+import sys
 #from skimage import io
 import numpy as np
 from glob import glob
 import SimpleITK as sitk
 from keras.utils import np_utils
+import os
+import shutil
+import tensorflow as tf
+import keras.backend as K
+
+config = tf.ConfigProto(intra_op_parallelism_threads=8,
+                        inter_op_parallelism_threads=8,
+                        allow_soft_placement=True,
+                        device_count = {'CPU': 8})
+session = tf.Session(config=config)
+K.set_session(session)
+
+def make_split_folders(dst_path, start_ind, end_ind, ind_list, path_all):
+    if not os.path.isdir(dst_path):
+        os.mkdir(dst_path)
+    
+    HGG_path = os.path.join(dst_path, 'HGG')
+    LGG_path = os.path.join(dst_path, 'LGG')
+    
+    if not os.path.isdir(HGG_path):
+        os.mkdir(HGG_path)
+    
+    if not os.path.isdir(LGG_path):
+        os.mkdir(LGG_path)
+    print(ind_list[start_ind:end_ind])
+    for ind in ind_list[start_ind:end_ind]:
+        if ind>=210:
+            dst_path = LGG_path+'/'+path_all[ind].split('/')[-1]
+            print(ind, ':', path_all[ind], '->', dst_path)
+            shutil.copytree(path_all[ind], dst_path)
+        else:
+            dst_path = HGG_path+'/'+path_all[ind].split('/')[-1]
+            print(ind, ':', path_all[ind], '->', dst_path)
+            shutil.copytree(path_all[ind], dst_path)
 
 class Pipeline(object):
 
@@ -11,7 +52,6 @@ class Pipeline(object):
     def __init__(self, list_train ,Normalize=True):
         self.scans_train = list_train
         self.train_im=self.read_scans(Normalize)
-        print(self.train_im.shape)
 
         
     def read_scans(self,Normalize):
@@ -72,6 +112,7 @@ class Pipeline(object):
         count = 0
 
         #swap axes to make axis 0 represents the modality and axis 1 represents the slice. take the ground truth
+        print(self.train_im.shape)
         gt_im = np.swapaxes(self.train_im, 0, 1)[4]   
 
         #take flair image as mask
@@ -164,76 +205,16 @@ class Pipeline(object):
             tmp[tmp==tmp.min()]=-9
             return tmp
 
-
-'''
-def save_image_png (img,output_file="img.png"):
-    """
-    save 2d image to disk in a png format
-    """
-    img=np.array(img).astype(np.float32)
-    if np.max(img) != 0:
-        img /= np.max(img)   # set values < 1                  
-    if np.min(img) <= -1: # set values > -1
-        img /= abs(np.min(img))
-    io.imsave(output_file, img)
-'''
-
-
-    
-def concatenate ():
-
-    '''
-    concatenate two parts into one dataset
-    this can be avoided if there is enough RAM as we can directly from the whole dataset
-    '''
-    Y_labels_2=np.load("y_dataset_second_part.npy").astype(np.uint8)
-    X_patches_2=np.load("x_dataset_second_part.npy").astype(np.float32)
-    Y_labels_1=np.load("y_dataset_first_part.npy").astype(np.uint8)
-    X_patches_1=np.load("x_dataset_first_part.npy").astype(np.float32)
-
-    #concatenate both parts
-    X_patches=np.concatenate((X_patches_1, X_patches_2), axis=0)
-    Y_labels=np.concatenate((Y_labels_1, Y_labels_2), axis=0)
-    del Y_labels_2,X_patches_2,Y_labels_1,X_patches_1
-
-    #shuffle the whole dataset
-    shuffle = list(zip(X_patches, Y_labels))
-    np.random.seed(138)
-    np.random.shuffle(shuffle)
-    X_patches = np.array([shuffle[i][0] for i in range(len(shuffle))])
-    Y_labels = np.array([shuffle[i][1] for i in range(len(shuffle))])
-    del shuffle
-
-
-    np.save( "x_training",X_patches.astype(np.float32) )
-    np.save( "y_training",Y_labels.astype(np.uint8))
-    #np.save( "x_valid",X_patches_valid.astype(np.float32) )
-    #np.save( "y_valid",Y_labels_valid.astype(np.uint8))
-
-
-if __name__ == '__main__':
-    
-    #Paths for Brats2017 dataset
-    path_HGG = glob('../Brats2018_training/HGG/**')
-    path_LGG = glob('../Brats2018_training/LGG/**')
-    path_all=path_HGG+path_LGG
-
-    #shuffle the dataset
-    np.random.seed(2022)
-    np.random.shuffle(path_all)
-
-    np.random.seed(1555)
-    start=0
-    end=20
+def make_patches(path_all, start_ind, end_ind, split):
     #set the total number of patches
     #this formula extracts approximately 3 patches per slice
-    num_patches=146*(end-start)*3
+    num_patches=146*(end_ind-start_ind)*3
     #define the size of a patch
     h=128
     w=128 
     d=4 
 
-    pipe=Pipeline(list_train=path_all[start:end],Normalize=True)
+    pipe=Pipeline(list_train=path_all[start_ind:end_ind],Normalize=True)
     Patches,Y_labels=pipe.sample_patches_randomly(num_patches,d, h, w)
 
     #transform the data to channels_last keras format
@@ -246,22 +227,76 @@ if __name__ == '__main__':
     #transform y to one_hot enconding for keras  
     shp=Y_labels.shape[0]
     Y_labels=Y_labels.reshape(-1)
-    Y_labels = np_utils.to_categorical(Y_labels).astype(np.uint8)
+    Y_labels= np_utils.to_categorical(Y_labels).astype(np.uint8)
     Y_labels=Y_labels.reshape(shp,h,w,4)
 
     #shuffle the whole dataset
-    shuffle = list(zip(Patches, Y_labels))
+    shuffle= list(zip(Patches, Y_labels))
     np.random.seed(180)
     np.random.shuffle(shuffle)
-    Patches = np.array([shuffle[i][0] for i in range(len(shuffle))])
-    Y_labels = np.array([shuffle[i][1] for i in range(len(shuffle))])
+    Patches= np.array([shuffle[i][0] for i in range(len(shuffle))])
+    Y_labels= np.array([shuffle[i][1] for i in range(len(shuffle))])
     del shuffle
     
     print("Size of the patches : ",Patches.shape)
     print("Size of their correponding targets : ",Y_labels.shape)
 
     #save to disk as npy files
-    np.save( "x_dataset_first_part",Patches )
-    np.save( "y_dataset_first_part",Y_labels)
+    np.save( "../Brats_patches_data/x_"+str(split),Patches)
+    np.save( "../Brats_patches_data/y_train"+str(split),Y_labels)
+    
+    del pipe
+    del Patches, Y_labels
 
+if __name__ == '__main__':
+    
+    #Paths for Brats2017 dataset
+    path_HGG = glob('../Brats2018_training/HGG/**')
+    path_LGG = glob('../Brats2018_training/LGG/**')
+    path_all=path_HGG+path_LGG
+    path_all_ = [(path, i) for i,path in enumerate(path_all)]
+    
+    if not os.path.isdir('../Brats_patches_data'):
+        os.mkdir('../Brats_patches_data')
 
+    #shuffle the dataset
+    np.random.seed(2022)
+    np.random.shuffle(path_all_)
+    
+    path_all_shuffled, ind = zip(*path_all_) 
+    
+    start_train = 0
+    end_train = 228
+    
+    start_val = 228
+    end_val = 256
+    
+    start_test = 256
+    end_test = 285
+    
+    ############## make folders #######################
+    make_split_folders('../data_split/Training_data', start_train, end_train, ind, path_all_shuffled)
+    make_split_folders('../data_split/Validation_data', start_val, end_val, ind, path_all_shuffled)
+    make_split_folders('../data_split/Testing_data', start_test, end_test, ind, path_all_shuffled)
+    
+    np.random.seed(1555)
+
+    ############ Data stats ##########################
+    print("Training data:")
+    print("# HGG datapoints:", np.sum(np.array(ind[start_train:end_train])<len(path_HGG)))
+    print("# LGG datapoints:", np.sum(np.array(ind[start_train:end_train])>=len(path_HGG)))
+          
+    print("Validation data:")
+    print("# HGG datapoints:", np.sum(np.array(ind[start_val:end_val])<len(path_HGG)))
+    print("# LGG datapoints:", np.sum(np.array(ind[start_val:end_val])>=len(path_HGG)))
+          
+    print("Testing data:")
+    print("# HGG datapoints:", np.sum(np.array(ind[start_test:end_test])<len(path_HGG)))
+    print("# LGG datapoints:", np.sum(np.array(ind[start_test:end_test])>=len(path_HGG)))
+
+    ############## make patches #######################
+    make_patches(path_all_shuffled, start_train, end_train,"train")
+    make_patches(path_all_shuffled, start_val, end_val, "val")
+    make_patches(path_all_shuffled, start_test, end_test, "test")
+    
+    
