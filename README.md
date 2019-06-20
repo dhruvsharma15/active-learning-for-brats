@@ -39,6 +39,28 @@ python extract_patches.py
 python train.py
 python predict.py
 ```
+Running `predict.py` generates the segmentation mask and also the metrics for each image. For example:
+```
+Volume ID:  HGG/Brats18_TCIA04_149_1
+155/155 [==============================] - 3s 22ms/step
+************************************************************
+Dice complete tumor score : 0.7530
+Dice core tumor score (tt sauf vert): 0.9235
+Dice enhancing tumor score (jaune):0.8708 
+**********************************************
+Sensitivity complete tumor score : 0.9778
+Sensitivity core tumor score (tt sauf vert): 0.9683
+Sensitivity enhancing tumor score (jaune):0.9550 
+***********************************************
+Specificity complete tumor score : 0.9951
+Specificity core tumor score (tt sauf vert): 0.9993
+Specificity enhancing tumor score (jaune):0.9989 
+***********************************************
+Hausdorff complete tumor score : 8.0623
+Hausdorff core tumor score (tt sauf vert): 4.5826
+Hausdorff enhancing tumor score (jaune):9.2195 
+***************************************************************
+```
 
 To use one of the query strategies:
 1. Import the strategy module in your code and understand its documentation to know what it takes as input and what it returns.
