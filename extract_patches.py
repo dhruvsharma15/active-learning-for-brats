@@ -243,7 +243,7 @@ def make_patches(path_all, start_ind, end_ind, split):
 
     #save to disk as npy files
     np.save( "../Brats_patches_data/x_"+str(split),Patches)
-    np.save( "../Brats_patches_data/y_train"+str(split),Y_labels)
+    np.save( "../Brats_patches_data/y_"+str(split),Y_labels)
     
     del pipe
     del Patches, Y_labels

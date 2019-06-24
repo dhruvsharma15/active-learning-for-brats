@@ -8,6 +8,8 @@ Created on Fri May 31 15:45:22 2019
 
 from .uncertainty import segmentation_uncertainty, segmentation_margin, segmentation_entropy, uncertainty_sampling, margin_sampling, entropy_sampling
 from .batch_sampling import uncertainty_batch_sampling
+from .coreset_ranked_sampling import informative_batch_sampling
 
 __all__ = ['segmentation_uncertainty', 'segmentation_margin', 'segmentation_entropy',
-           'uncertainty_sampling', 'margin_sampling', 'entropy_sampling', 'uncertainty_batch_sampling']
+           'uncertainty_sampling', 'margin_sampling', 'entropy_sampling', 
+           'uncertainty_batch_sampling', 'informative_batch_sampling']

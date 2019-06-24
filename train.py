@@ -20,7 +20,7 @@ from sklearn.preprocessing import StandardScaler
 from active_learner import ActiveLearner
 from model import Unet_model
 from strategies.uncertainty import *
-from strategies.batch_sampling import uncertainty_batch_sampling
+from strategies.coreset_ranked_sampling import informative_batch_sampling
 
 config = tf.ConfigProto(intra_op_parallelism_threads=8,
                         inter_op_parallelism_threads=8,
@@ -32,9 +32,12 @@ K.set_session(session)
 def main():
     start=datetime.now()
     # Data Loading and Preprocessing
+    Y_=np.load("../Brats_patches_data/y_train_small.npy").astype(np.uint8)
+    X_=np.load("../Brats_patches_data/x_train_small.npy").astype(np.float32)
     
-    Y_labels=np.load("../Brats_patches_data/y_train_small.npy").astype(np.uint8)
-    X_patches=np.load("../Brats_patches_data/x_train_small.npy").astype(np.float32)
+    Y_labels=Y_#[:20000]
+    X_patches=X_#[:20000]
+    del Y_, X_
     print("Data shape:",X_patches.shape)
 #    X_train = X_patches[:100]
 #    X_test = X_patches[100:]
@@ -79,7 +82,7 @@ def main():
     
         
     # Active loop
-    preset_batch = partial(uncertainty_batch_sampling, n_instances=nb_annotations, n_jobs = 8)
+    preset_batch = partial(informative_batch_sampling, n_instances=nb_annotations, n_jobs = 8)
 
     learner = ActiveLearner(model = model,
                             query_strategy = preset_batch,
@@ -91,21 +94,21 @@ def main():
                             batch_size = batch_size
                             )
     ############ testing ############
-    val_output = learner.evaluate(X_test, Y_test)
+    val_output = learner.evaluate(X_test, Y_test, verbose = 1)
         
     for i in range(len(learner.model.metrics_names)):
         print(learner.model.metrics_names[i], val_output[i])
     ################################
     
+    layer_name = 'conv2d_11'
+    intermediate_layer_model = Model(inputs=learner.model.input,
+                                         outputs=learner.model.get_layer(layer_name).output)
     for idx in range(nb_iterations):
         nb_active_epochs = nb_active_epochs + 2
         ## features of the labeled and the unlabeled pool ############
         print('extracting features from the encoder of the UNet')
-        
-        layer_name = 'conv2d_11'
         n_dims = min(1024,min(len(learner.X_training), len(X_pool)))
-        intermediate_layer_model = Model(inputs=learner.model.input,
-                                         outputs=learner.model.get_layer(layer_name).output)
+        
         print('applying PCA for labeled pool')
         labeled_inter = intermediate_layer_model.predict(learner.X_training)
         labeled_inter = labeled_inter.reshape((len(labeled_inter), -1))
@@ -139,10 +142,12 @@ def main():
         y_pool = np.delete(y_pool, query_idx, axis=0)
         
         ####### testing ##############
-        val_output = learner.evaluate(X_test, Y_test)
+        val_output = learner.evaluate(X_test, Y_test, verbose=1)
         
         for i in range(len(learner.model.metrics_names)):
             print(learner.model.metrics_names[i], val_output[i])
+        
+        del labeled_inter, unlabeled_inter, features_labeled, features_unlabeled
         
     ############### testing #######################
     model_path = './trained_weights/'
