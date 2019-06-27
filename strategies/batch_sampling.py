@@ -95,9 +95,16 @@ def select_instance(
     scores = alpha * (1 - similarity_scores) + (1 - alpha) * X_uncertainty[mask]
 
     # Isolate and return our best instance for labeling as the one with the largest score.
-    best_instance_index = np.argmax(scores)
+    best_instance_index_in_unlabeled = np.argmax(scores)
+    n_pool, *rest = X_pool.shape
+    unlabeled_indices = [i for i in range(n_pool) if mask[i]]
+    best_instance_index = unlabeled_indices[best_instance_index_in_unlabeled]
     mask[best_instance_index] = 0
-    return best_instance_index, X_pool[best_instance_index], mask
+    return best_instance_index, np.expand_dims(X_pool[best_instance_index], axis=0), mask
+    
+#    best_instance_index = np.argmax(scores)
+#    mask[best_instance_index] = 0
+#    return best_instance_index, X_pool[best_instance_index], mask
 
 
 def ranked_batch(classifier,
@@ -151,7 +158,7 @@ def ranked_batch(classifier,
         # Add our instance we've considered for labeling to our labeled set. Although we don't
         # know it's label, we want further iterations to consider the newly-added instance so
         # that we don't query the same instance redundantly.
-        labeled = np.concatenate((labeled, np.array([instance])))
+        labeled = np.concatenate((labeled, instance))
         X_training_feat = np.concatenate((X_training_feat, np.array([X_pool_feat[instance_index]])))
 
         # Finally, append our instance's index to the bottom of our ranking.

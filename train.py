@@ -21,6 +21,7 @@ from active_learner import ActiveLearner
 from model import Unet_model
 from strategies.uncertainty import *
 from strategies.coreset_ranked_sampling import informative_batch_sampling
+from strategies.batch_sampling import uncertainty_batch_sampling
 
 config = tf.ConfigProto(intra_op_parallelism_threads=8,
                         inter_op_parallelism_threads=8,
@@ -28,6 +29,11 @@ config = tf.ConfigProto(intra_op_parallelism_threads=8,
                         device_count = {'CPU': 8})
 session = tf.Session(config=config)
 K.set_session(session)
+
+#import pycuda.autoinit
+#import pycuda.gpuarray as gpuarray
+#import skcuda.linalg as linalg
+#from skcuda.linalg import PCA as cuPCA
 
 def main():
     start=datetime.now()
@@ -82,7 +88,7 @@ def main():
     
         
     # Active loop
-    preset_batch = partial(informative_batch_sampling, n_instances=nb_annotations, n_jobs = 8)
+    preset_batch = partial(informative_batch_sampling, n_instances=nb_annotations)
 
     learner = ActiveLearner(model = model,
                             query_strategy = preset_batch,
@@ -114,13 +120,25 @@ def main():
         labeled_inter = labeled_inter.reshape((len(labeled_inter), -1))
         labeled_inter = StandardScaler().fit_transform(labeled_inter)
         
-        pca = PCA(n_components = min(n_dims, min(labeled_inter.shape)))
-        features_labeled = pca.fit_transform(labeled_inter)
-        
         print('applying PCA for unlabeled pool')
         unlabeled_inter = intermediate_layer_model.predict(X_pool)
         unlabeled_inter = unlabeled_inter.reshape((len(unlabeled_inter), -1))
         unlabeled_inter = StandardScaler().fit_transform(unlabeled_inter)
+        
+#        ############ PCA for GPU ######################################
+#        pca = cuPCA(n_components=min(n_dims, min(labeled_inter.shape))) 
+#        X_gpu = gpuarray.GPUArray(labeled_inter.shape, np.float64, order="F") 
+#        X_gpu.set(labeled_inter) 
+#        features_labeled = pca.fit_transform(X_gpu) 
+#        
+#        pca = cuPCA(n_components=min(n_dims, min(unlabeled_inter.shape))) 
+#        X_gpu = gpuarray.GPUArray(unlabeled_inter.shape, np.float64, order="F") 
+#        X_gpu.set(unlabeled_inter) 
+#        features_unlabeled = pca.fit_transform(X_gpu) 
+#        ###############################################################
+        
+        pca = PCA(n_components = min(n_dims, min(labeled_inter.shape)))
+        features_labeled = pca.fit_transform(labeled_inter)
         
         pca = PCA(n_components = min(n_dims, min(unlabeled_inter.shape)))
         features_unlabeled = pca.fit_transform(unlabeled_inter)
@@ -140,6 +158,9 @@ def main():
         print("patches annotated: ", X_pool[query_idx].shape)
         X_pool = np.delete(X_pool, query_idx, axis=0)
         y_pool = np.delete(y_pool, query_idx, axis=0)
+        
+        print('Training data shape after this query', learner.X_training.shape)
+        print('Unlabeled data shape after this query', X_pool.shape)
         
         ####### testing ##############
         val_output = learner.evaluate(X_test, Y_test, verbose=1)

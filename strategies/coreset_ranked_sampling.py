@@ -19,7 +19,7 @@ from sklearn.cluster import KMeans
 from sklearn.metrics.pairwise import pairwise_distances, pairwise_distances_argmin_min
 from keras.models import Model
 from strategies.uncertainty import *
-
+from sklearn.neighbors import NearestNeighbors
 
 def select_instance(
         X_training,
@@ -96,9 +96,16 @@ def select_instance(
     scores = alpha * (1 - similarity_scores) + (1 - alpha) * X_uncertainty[mask]
 
     # Isolate and return our best instance for labeling as the one with the largest score.
-    best_instance_index = np.argmax(scores)
+    best_instance_index_in_unlabeled = np.argmax(scores)
+    n_pool, *rest = X_pool.shape
+    unlabeled_indices = [i for i in range(n_pool) if mask[i]]
+    best_instance_index = unlabeled_indices[best_instance_index_in_unlabeled]
     mask[best_instance_index] = 0
-    return best_instance_index, X_pool[best_instance_index], mask
+    return best_instance_index, np.expand_dims(X_pool[best_instance_index], axis=0), mask
+
+#    best_instance_index = np.argmax(scores)
+#    mask[best_instance_index] = 0
+#    return best_instance_index, X_pool[best_instance_index], mask
 
 
 def ranked_batch(classifier,
@@ -135,13 +142,25 @@ def ranked_batch(classifier,
     n_clusters = int(0.8*n_instances + 0.2*len(X_pool_feat))
     n_clusters = np.minimum(n_clusters, len(X_pool_feat))
     km = KMeans(n_clusters=n_clusters, n_jobs = n_jobs).fit(X_pool_feat)
-    closest, _ = pairwise_distances_argmin_min(km.cluster_centers_, X_pool_feat)
+    
+    centers = np.array(km.cluster_centers_)
+    cluster_labels = km.labels_.tolist()
+    closest = []
+    
+    for i in range(n_clusters):
+        center = centers[i]
+        this_center_data = [idx for idx, clu_num in enumerate(cluster_labels) if clu_num == i]
+        nbrs = NearestNeighbors(n_neighbors=1).fit(X_pool_feat[this_center_data])
+        dist, ind = nbrs.kneighbors([center])
+        closest.append(this_center_data[ind[0][0]])
+#    closest, _ = pairwise_distances_argmin_min(km.cluster_centers_, X_pool_feat)
     
     # Define our record container and the maximum number of records to sample.
     instance_index_ranking = []    
     ceiling = np.minimum(unlabeled.shape[0], n_instances)
 
     # mask for unlabeled initialized as transparent
+    closest = np.array(closest)
     mask = np.zeros(unlabeled.shape[0], np.bool)
     mask[closest] = 1
 
@@ -160,7 +179,7 @@ def ranked_batch(classifier,
         # Add our instance we've considered for labeling to our labeled set. Although we don't
         # know it's label, we want further iterations to consider the newly-added instance so
         # that we don't query the same instance redundantly.
-        labeled = np.concatenate((labeled, np.array([instance])))
+        labeled = np.concatenate((labeled, instance))
         X_training_feat = np.concatenate((X_training_feat, np.array([X_pool_feat[instance_index]])))
 
         # Finally, append our instance's index to the bottom of our ranking.
