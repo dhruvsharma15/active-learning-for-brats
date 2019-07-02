@@ -100,7 +100,7 @@ class ActiveLearner():
         K.set_session(tf.Session())
         K.get_session().run(tf.global_variables_initializer())
 
-        checkpointer = ModelCheckpoint(filepath='trained_weights/ResUnet.{epoch:02d}.hdf5', verbose=1)
+        checkpointer = ModelCheckpoint(filepath='trained_weights_AL3/ResUnet.{epoch:02d}.hdf5', verbose=1)
         validation_data = None
         if(self.X_val is not None and self.y_val is not None):
             validation_data = (self.X_val, self.y_val)

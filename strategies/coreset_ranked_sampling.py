@@ -26,6 +26,7 @@ def select_instance(
         X_pool,
         X_training_feat,
         X_pool_feat,
+        n_annotated,
         X_uncertainty: np.ndarray,
         mask: np.ndarray,
         metric: Union[str, Callable],
@@ -57,7 +58,7 @@ def select_instance(
         the most optimal incremental record for including in our query set.
     """
     # Extract the number of labeled and unlabeled records.
-    n_labeled_records = X_training.shape[0]
+    n_labeled_records = X_training.shape[0] + n_annotated
     n_unlabeled = X_pool[mask].shape[0]
 
     # Determine our alpha parameter as |U| / (|U| + |D|). Note that because we
@@ -163,7 +164,7 @@ def ranked_batch(classifier,
     closest = np.array(closest)
     mask = np.zeros(unlabeled.shape[0], np.bool)
     mask[closest] = 1
-
+    query_count = 0
     for _ in tqdm(range(ceiling)):
 
         # Receive the instance and corresponding index from our unlabeled copy that scores highest.
@@ -171,7 +172,8 @@ def ranked_batch(classifier,
                                                          X_pool=unlabeled,
                                                          X_training_feat=X_training_feat,
                                                          X_pool_feat=X_pool_feat,
-                                                         X_uncertainty=uncertainty_scores, 
+                                                         n_annotated = query_count,
+                                                         X_uncertainty=uncertainty_scores,                            
                                                          mask=mask,
                                                          metric=metric, 
                                                          n_jobs=n_jobs)
@@ -179,11 +181,13 @@ def ranked_batch(classifier,
         # Add our instance we've considered for labeling to our labeled set. Although we don't
         # know it's label, we want further iterations to consider the newly-added instance so
         # that we don't query the same instance redundantly.
-        labeled = np.concatenate((labeled, instance))
-        X_training_feat = np.concatenate((X_training_feat, np.array([X_pool_feat[instance_index]])))
-
+        #####
+#        labeled = np.concatenate((labeled, instance))
+#        X_training_feat = np.concatenate((X_training_feat, np.array([X_pool_feat[instance_index]])))
+        #####
         # Finally, append our instance's index to the bottom of our ranking.
         instance_index_ranking.append(instance_index)
+        query_count += 1
 
     # Return numpy array, not a list.
     return np.array(instance_index_ranking)

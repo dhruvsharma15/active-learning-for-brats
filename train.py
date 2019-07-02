@@ -1,9 +1,9 @@
 from __future__ import print_function
 import os
-os.environ["CUDA_DEVICE_ORDER"]="PCI_BUS_ID"
- 
-# The GPU id to use, usually either "0" or "1";
-os.environ["CUDA_VISIBLE_DEVICES"]="0"
+#os.environ["CUDA_DEVICE_ORDER"]="PCI_BUS_ID"
+# 
+## The GPU id to use, usually either "0" or "1";
+#os.environ["CUDA_VISIBLE_DEVICES"]="0"
 
 from datetime import datetime
 import numpy as np
@@ -38,11 +38,11 @@ K.set_session(session)
 def main():
     start=datetime.now()
     # Data Loading and Preprocessing
-    Y_=np.load("../Brats_patches_data/y_train_small.npy").astype(np.uint8)
-    X_=np.load("../Brats_patches_data/x_train_small.npy").astype(np.float32)
+    Y_=np.load("../Brats_patches_data/y_train.npy", mmap_mode = 'r').astype(np.uint8)
+    X_=np.load("../Brats_patches_data/x_train.npy", mmap_mode = 'r').astype(np.float32)
     
-    Y_labels=Y_#[:20000]
-    X_patches=X_#[:20000]
+    Y_labels=Y_[:20000]
+    X_patches=X_[:20000]
     del Y_, X_
     print("Data shape:",X_patches.shape)
 #    X_train = X_patches[:100]
@@ -57,12 +57,12 @@ def main():
     
     ##################################################
         
-    nb_labeled = 2000
+    nb_labeled = 9000
 #    nb_unlabeled = X_patches.shape[0] - nb_labeled
     initial_idx = np.random.choice(range(len(X_patches)), size=nb_labeled, replace=False)
 
     nb_iterations = 10
-    nb_annotations = 500
+    nb_annotations = 600
 
     
     nb_initial_epochs = 10
@@ -88,7 +88,7 @@ def main():
     
         
     # Active loop
-    preset_batch = partial(informative_batch_sampling, n_instances=nb_annotations)
+    preset_batch = partial(uncertainty_batch_sampling, n_instances=nb_annotations)
 
     learner = ActiveLearner(model = model,
                             query_strategy = preset_batch,
@@ -124,18 +124,6 @@ def main():
         unlabeled_inter = intermediate_layer_model.predict(X_pool)
         unlabeled_inter = unlabeled_inter.reshape((len(unlabeled_inter), -1))
         unlabeled_inter = StandardScaler().fit_transform(unlabeled_inter)
-        
-#        ############ PCA for GPU ######################################
-#        pca = cuPCA(n_components=min(n_dims, min(labeled_inter.shape))) 
-#        X_gpu = gpuarray.GPUArray(labeled_inter.shape, np.float64, order="F") 
-#        X_gpu.set(labeled_inter) 
-#        features_labeled = pca.fit_transform(X_gpu) 
-#        
-#        pca = cuPCA(n_components=min(n_dims, min(unlabeled_inter.shape))) 
-#        X_gpu = gpuarray.GPUArray(unlabeled_inter.shape, np.float64, order="F") 
-#        X_gpu.set(unlabeled_inter) 
-#        features_unlabeled = pca.fit_transform(X_gpu) 
-#        ###############################################################
         
         pca = PCA(n_components = min(n_dims, min(labeled_inter.shape)))
         features_labeled = pca.fit_transform(labeled_inter)
