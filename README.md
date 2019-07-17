@@ -22,6 +22,7 @@ To run the code, you first need to install the following prerequisites:
 * Python 3.5 or above
 * numpy
 * keras
+* tensorflow-gpu==1.13.1
 * scipy
 * SimpleITK
 * tqdm
