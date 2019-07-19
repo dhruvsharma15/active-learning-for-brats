@@ -26,6 +26,7 @@ To run the code, you first need to install the following prerequisites:
 * scipy
 * SimpleITK
 * tqdm
+* sklearn
 
 ### How to run
 
