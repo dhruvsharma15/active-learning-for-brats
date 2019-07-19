@@ -203,19 +203,13 @@ def informative_batch_sampling(model: Model,
                                **uncertainty_measure_kwargs
                                ) -> Tuple[np.ndarray, Union[np.ndarray, sp.csr_matrix]]:
     """
-    Batch sampling query strategy. Selects the least sure instances for labelling.
-
-    This strategy differs from :func:`~modAL.uncertainty.uncertainty_sampling` because, although it is supported,
-    traditional active learning query strategies suffer from sub-optimal record selection when passing
-    `n_instances` > 1. This sampling strategy extends the interactive uncertainty query sampling by allowing for
-    batch-mode uncertainty query sampling. Furthermore, it also enforces a ranking -- that is, which records among the
-    batch are most important for labeling?
+    coreset based ranked Batch sampling query strategy. Selects the least sure instances for labelling.
 
     Refer to Cardoso et al.'s "Ranked batch-mode active learning":
         https://www.sciencedirect.com/science/article/pii/S0020025516313949
 
     Args:
-        classifier: One of modAL's supported active learning models.
+        classifier: active learning model.
         X: Set of records to be considered for our active learning model.
         features_labeled: feature vectors of the labeled data to be used for similarity matrix computation.
         features_unlabeled: feature vectors of the unlabeled data to be used for similarity matrix computation.
