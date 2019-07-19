@@ -8,8 +8,8 @@ import os
 from datetime import datetime
 import numpy as np
 from functools import partial
+import configparser
 
-from keras.utils import np_utils
 import keras.backend as K
 import tensorflow as tf
 from keras.models import Model
@@ -30,52 +30,87 @@ config = tf.ConfigProto(intra_op_parallelism_threads=8,
 session = tf.Session(config=config)
 K.set_session(session)
 
-#import pycuda.autoinit
-#import pycuda.gpuarray as gpuarray
-#import skcuda.linalg as linalg
-#from skcuda.linalg import PCA as cuPCA
-
 def main():
     start=datetime.now()
-    # Data Loading and Preprocessing
-    Y_=np.load("../Brats_patches_data/y_train.npy", mmap_mode = 'r').astype(np.uint8)
-    X_=np.load("../Brats_patches_data/x_train.npy", mmap_mode = 'r').astype(np.float32)
+    
+    ######################3 data paths ######################
+    config = configparser.ConfigParser()
+    config.read("config.ini")
+    x_train_patches_path = config.get('Paths', 'X_train_patches_path')
+    y_train_patches_path = config.get('Paths', 'y_train_patches_path')
+    x_val_patches_path = config.get('Paths', 'X_val_patches_path')
+    y_val_patches_path = config.get('Paths', 'y_val_patches_path')
+    x_test_patches_path = config.get('Paths', 'X_test_patches_path')
+    y_test_patches_path = config.get('Paths', 'y_test_patches_path')
+    weights_path = config.get('Paths', 'weights_path')
+    
+    ###################### model hyperparameters ###########
+    try:
+        nb_initial_epochs = int(config.get('model_params', 'nb_initial_epochs'))
+    except:
+        nb_initial_epochs = 10
+        
+    try:
+        nb_active_epochs = int(config.get('model_params', 'nb_active_epochs'))
+    except:
+        nb_active_epochs = 10
+        
+    try:
+        batch_size = int(config.get('model_params', 'batch_size'))
+    except:
+        batch_size = 4
+    
+    ###################### active learning hyperparameters #####
+    try:
+        nb_labeled = int(config.get('AL_params', 'nb_labeled'))
+    except:
+        nb_labeled = 9000
+        
+    try:
+        nb_iterations = int(config.get('AL_params', 'nb_iterations'))
+    except:
+        nb_iterations = 5
+    
+    try:
+        nb_annotations = int(config.get('AL_params', 'nb_annotations'))
+    except:
+        nb_annotations = 600
+        
+    try:
+        strategy = int(config.get('AL_params', 'query_strategy'))
+        if(strategy == 'informative_batch_sampling'):
+            query_strategy = partial(uncertainty_batch_sampling, n_instances=nb_annotations)
+        if(strategy == 'uncertainty_batch_sampling'):
+            query_strategy = partial(uncertainty_batch_sampling, n_instances=nb_annotations)
+    except:
+        query_strategy = partial(uncertainty_batch_sampling, n_instances=nb_annotations)
+    
+    # Data Loading
+    Y_=np.load(x_train_patches_path, mmap_mode = 'r').astype(np.uint8)
+    X_=np.load(y_train_patches_path, mmap_mode = 'r').astype(np.float32)
     
     Y_labels=Y_[:20000]
     X_patches=X_[:20000]
     del Y_, X_
     print("Data shape:",X_patches.shape)
-#    X_train = X_patches[:100]
-#    X_test = X_patches[100:]
+
+    Y_valid = np.load(y_val_patches_path).astype(np.uint8)
+    X_valid = np.load(x_val_patches_path).astype(np.float32)
     
-    Y_valid = np.load("../Brats_patches_data/y_val.npy").astype(np.uint8)
-    X_valid = np.load("../Brats_patches_data/x_val.npy").astype(np.float32)
-    
-    Y_test = np.load("../Brats_patches_data/y_test.npy").astype(np.uint8)
-    X_test = np.load("../Brats_patches_data/x_test.npy").astype(np.float32)
+    Y_test = np.load(y_test_patches_path).astype(np.uint8)
+    X_test = np.load(x_test_patches_path).astype(np.float32)
     
     
     ##################################################
         
-    nb_labeled = 9000
 #    nb_unlabeled = X_patches.shape[0] - nb_labeled
     initial_idx = np.random.choice(range(len(X_patches)), size=nb_labeled, replace=False)
-
-    nb_iterations = 10
-    nb_annotations = 600
-
-    
-    nb_initial_epochs = 10
-    nb_active_epochs = 10
-    batch_size = 4
 
     ##################################################
     
     # DB definition
     
-#    y_train = Y_labels[:100]
-#    y_test = Y_labels[100:]
-    
+
     X_labeled_train = X_patches[initial_idx]
     y_labeled_train = Y_labels[initial_idx]
 
@@ -87,13 +122,12 @@ def main():
     model = unet.model
     
         
-    # Active loop
-    preset_batch = partial(uncertainty_batch_sampling, n_instances=nb_annotations)
-
+    # Active learner initilization
     learner = ActiveLearner(model = model,
-                            query_strategy = preset_batch,
+                            query_strategy = query_strategy,
                             X_training = X_labeled_train,
                             y_training = y_labeled_train,
+                            weights_path = weights_path,
                             X_val = X_valid,
                             y_val = Y_valid,
                             verbose = 1, epochs = nb_initial_epochs,

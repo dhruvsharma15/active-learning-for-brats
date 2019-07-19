@@ -12,6 +12,7 @@ import tensorflow as tf
 
 import numpy as np
 from strategies.uncertainty import uncertainty_sampling
+import os
 
 class SGDLearningRateTracker(Callback):
     def on_epoch_begin(self, epoch, logs={}):
@@ -41,6 +42,7 @@ class ActiveLearner():
                 model,
                 X_training,
                 y_training,
+                weights_path,
                 X_val = None,
                 y_val = None,
                 query_strategy=uncertainty_sampling,
@@ -50,6 +52,7 @@ class ActiveLearner():
         
         self.model = model
         self.query_strategy = query_strategy
+        self.weights_path = weights_path
         
         self.X_training = X_training
         self.y_training = y_training
@@ -100,7 +103,7 @@ class ActiveLearner():
         K.set_session(tf.Session())
         K.get_session().run(tf.global_variables_initializer())
 
-        checkpointer = ModelCheckpoint(filepath='trained_weights_AL3/ResUnet.{epoch:02d}.hdf5', verbose=1)
+        checkpointer = ModelCheckpoint(filepath=os.path.join(self.weights_path,'ResUnet.{epoch:02d}.hdf5'), verbose=1)
         validation_data = None
         if(self.X_val is not None and self.y_val is not None):
             validation_data = (self.X_val, self.y_val)
@@ -120,7 +123,7 @@ class ActiveLearner():
         Returns:
             self
         """
-        checkpointer = ModelCheckpoint(filepath='trained_weights/ResUnet.{epoch:02d}.hdf5', verbose=1)
+        checkpointer = ModelCheckpoint(filepath=os.path.join(self.weights_path,'ResUnet.{epoch:02d}.hdf5'), verbose=1)
         validation_data = None
         if(self.X_val is not None and self.y_val is not None):
             validation_data = (self.X_val, self.y_val)

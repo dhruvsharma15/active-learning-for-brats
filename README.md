@@ -28,6 +28,7 @@ To run the code, you first need to install the following prerequisites:
 * SimpleITK
 * tqdm
 * sklearn
+* configparser
 
 ### How to run
 
