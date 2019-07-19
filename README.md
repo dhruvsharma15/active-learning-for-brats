@@ -9,7 +9,7 @@ The issue is addressed by: 1) adopting a patch-based training approach; 2) using
 During training, 2D patches of size 128x128 from the axial plane are randomly sampled. And by doing so it allows to dismiss patches from pixels with zero intensity and therefore it helps a bit to alleviate the problem.
 
 ### Active Learning
-Active Learning is the algorithm to intelligently select data points for training the model. This ensures that we are using limited resources for getting the data annotated. To select the points intelligently, we need to find the informativeness of the data point - uncertainty and representativeness. These are captures using the query strategies. This module implements 2 query strategies:
+Active Learning is the algorithm to intelligently select data points for training the model. This ensures that we are using limited resources for getting the data annotated. To select the points intelligently, we need to find the informativeness of the data point - uncertainty and representativeness. These are captures using the query strategies. This module implements 3 query strategies:
 * Uncertainty sampling
 * ranked batch-mode sampling 
 * coreset-based ranked-batch mode sampling
