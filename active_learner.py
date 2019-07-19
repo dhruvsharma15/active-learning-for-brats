@@ -102,7 +102,10 @@ class ActiveLearner():
         K.get_session().close()
         K.set_session(tf.Session())
         K.get_session().run(tf.global_variables_initializer())
-
+        
+        if not os.path.isdir(self.weights_path):
+            os.mkdir(self.weights_path)
+            
         checkpointer = ModelCheckpoint(filepath=os.path.join(self.weights_path,'ResUnet.{epoch:02d}.hdf5'), verbose=1)
         validation_data = None
         if(self.X_val is not None and self.y_val is not None):
@@ -123,6 +126,9 @@ class ActiveLearner():
         Returns:
             self
         """
+        if not os.path.isdir(self.weights_path):
+            os.mkdir(self.weights_path)
+            
         checkpointer = ModelCheckpoint(filepath=os.path.join(self.weights_path,'ResUnet.{epoch:02d}.hdf5'), verbose=1)
         validation_data = None
         if(self.X_val is not None and self.y_val is not None):

@@ -32,7 +32,7 @@ To run the code, you first need to install the following prerequisites:
 
 ### How to run
 
-Git clone this repository in the same directory as your BraTS data - `Brats2018_training`.
+Git clone this repository. Populate the `config.ini` with appropriate hyperparameter values and data paths.
 
 1. Execute first `extract_patches.py` to prepare the training, validation, and testing datasets which will be saved in the `Brats_patches_data` directory. This also segregates the images into three different folders, one for each split, which can later be utilized for generating the predictions stored under the folder of `data_split`.
 2. then `train.py` to train the model. The trained weights will be saved in the directory `brain_segmentation`.
