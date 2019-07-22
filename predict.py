@@ -12,6 +12,7 @@ from evaluation_metrics import *
 from model import Unet_model
 import tensorflow as tf
 import keras.backend as K
+import configparser
 
 config = tf.ConfigProto(intra_op_parallelism_threads=8,
                         inter_op_parallelism_threads=8,
@@ -197,12 +198,16 @@ class Prediction(object):
 
 
 if __name__ == "__main__":
-
+    config = configparser.ConfigParser()
+    config.read("config.ini")
+    data_split_path = config.get('Paths', 'data_split_path')
+    weights_path = config.get('Paths', 'weights_path')
+    
     #set arguments
-    model_to_load="./trained_weights_AL3/ResUnet.20.hdf5"#+sorted(os.listdir("./trained_weights/"))[-1]
+    model_to_load=os.path.join(weights_path,"ResUnet.20.hdf5")#+sorted(os.listdir("./trained_weights/"))[-1]
     #paths for the testing data
-    path_HGG = glob('../data_split/Testing_data/HGG/**')
-    path_LGG = glob('../data_split/Testing_data/LGG/**')
+    path_HGG = glob(os.path.join(data_split_path,'Testing_data/HGG/**'))
+    path_LGG = glob(os.path.join(data_split_path,'Testing_data/LGG/**'))
 
     test_path=path_HGG+path_LGG
     np.random.seed(2022)
