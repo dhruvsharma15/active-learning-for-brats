@@ -195,12 +195,11 @@ def main():
         del labeled_inter, unlabeled_inter, features_labeled, features_unlabeled
         
     ############### testing #######################
-    model_path = './trained_weights/'
-    model_weight_paths = sorted(os.listdir(model_path))[-1]
+    model_weight_paths = sorted(os.listdir(weights_path))[-1]
     
     print('testing the model')
     
-    weights_path = model_path + model_weight_paths
+    weights_path = os.path.join(weights_path, model_weight_paths)
 
     val_output = learner.evaluate(X = X_test, y = Y_test, model_path=weights_path, batch_size=4, verbose=1)
     
