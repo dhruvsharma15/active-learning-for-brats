@@ -36,7 +36,7 @@ def main():
     ######################3 data paths ######################
     config = configparser.ConfigParser()
     config.read("config.ini")
-    data_patches_path = config.get('paths', 'data_patches_path')
+    data_patches_path = config.get('Paths', 'data_patches_path')
     
     x_train_patches_path = os.path.join(data_patches_path, 'x_train.npy')
     y_train_patches_path = os.path.join(data_patches_path, 'y_train.npy')
