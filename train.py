@@ -36,12 +36,14 @@ def main():
     ######################3 data paths ######################
     config = configparser.ConfigParser()
     config.read("config.ini")
-    x_train_patches_path = config.get('Paths', 'X_train_patches_path')
-    y_train_patches_path = config.get('Paths', 'y_train_patches_path')
-    x_val_patches_path = config.get('Paths', 'X_val_patches_path')
-    y_val_patches_path = config.get('Paths', 'y_val_patches_path')
-    x_test_patches_path = config.get('Paths', 'X_test_patches_path')
-    y_test_patches_path = config.get('Paths', 'y_test_patches_path')
+    data_patches_path = config.get('paths', 'data_patches_path')
+    
+    x_train_patches_path = os.path.join(data_patches_path, 'x_train.npy')
+    y_train_patches_path = os.path.join(data_patches_path, 'y_train.npy')
+    x_val_patches_path = os.path.join(data_patches_path, 'x_val.npy')
+    y_val_patches_path = os.path.join(data_patches_path, 'y_val.npy')
+    x_test_patches_path = os.path.join(data_patches_path, 'x_test.npy')
+    y_test_patches_path = os.path.join(data_patches_path, 'y_test.npy')
     weights_path = config.get('Paths', 'weights_path')
     
     ###################### model hyperparameters ###########

@@ -6,6 +6,8 @@ os.environ["CUDA_VISIBLE_DEVICES"]="0"
 
 import random
 import sys
+import configparser
+
 #from skimage import io
 import numpy as np
 from glob import glob
@@ -205,7 +207,8 @@ class Pipeline(object):
             tmp[tmp==tmp.min()]=-9
             return tmp
 
-def make_patches(path_all, start_ind, end_ind, split):
+def make_patches(path_all, start_ind, end_ind, split, patches_path):
+    
     #set the total number of patches
     #this formula extracts approximately 3 patches per slice
     num_patches=146*(end_ind-start_ind)*3
@@ -242,22 +245,29 @@ def make_patches(path_all, start_ind, end_ind, split):
     print("Size of their correponding targets : ",Y_labels.shape)
 
     #save to disk as npy files
-    np.save( "../Brats_patches_data/x_"+str(split),Patches)
-    np.save( "../Brats_patches_data/y_"+str(split),Y_labels)
+    np.save( os.path.join(patches_path, "x_"+str(split)), Patches)
+    np.save( os.path.join(patches_path, "y_"+str(split)), Y_labels)
     
     del pipe
     del Patches, Y_labels
 
 if __name__ == '__main__':
+    ###################### data paths ######################
+    config = configparser.ConfigParser()
+    config.read("config.ini")
+    LGG_path = config.get('Paths', 'LGG_path')
+    HGG_path = config.get('Paths', 'HGG_path')
+    data_split_path = config.get('Paths', 'data_split_path')
+    data_patches_path = config.get('Paths', 'data_patches_path')
     
     #Paths for Brats2017 dataset
-    path_HGG = glob('../Brats2018_training/HGG/**')
-    path_LGG = glob('../Brats2018_training/LGG/**')
+    path_HGG = glob(os.path.join(HGG_path,'**'))
+    path_LGG = glob(os.path.join(LGG_path,'**'))
     path_all=path_HGG+path_LGG
     path_all_ = [(path, i) for i,path in enumerate(path_all)]
     
-    if not os.path.isdir('../Brats_patches_data'):
-        os.mkdir('../Brats_patches_data')
+    if not os.path.isdir(data_patches_path):
+        os.mkdir(data_patches_path)
 
     #shuffle the dataset
     np.random.seed(2022)
@@ -275,9 +285,11 @@ if __name__ == '__main__':
     end_test = 285
     
     ############## make folders #######################
-    make_split_folders('../data_split/Training_data', start_train, end_train, ind, path_all_shuffled)
-    make_split_folders('../data_split/Validation_data', start_val, end_val, ind, path_all_shuffled)
-    make_split_folders('../data_split/Testing_data', start_test, end_test, ind, path_all_shuffled)
+    if not os.path.isdir(data_split_path):
+        os.mkdir(data_split_path)
+    make_split_folders(os.path.join(data_split_path,'Training_data'), start_train, end_train, ind, path_all_shuffled)
+    make_split_folders(os.path.join(data_split_path,'Validation_data'), start_val, end_val, ind, path_all_shuffled)
+    make_split_folders(os.path.join(data_split_path,'Testing_data'), start_test, end_test, ind, path_all_shuffled)
     
     np.random.seed(1555)
 
@@ -295,8 +307,8 @@ if __name__ == '__main__':
     print("# LGG datapoints:", np.sum(np.array(ind[start_test:end_test])>=len(path_HGG)))
 
     ############## make patches #######################
-    make_patches(path_all_shuffled, start_train, end_train,"train")
-    make_patches(path_all_shuffled, start_val, end_val, "val")
-    make_patches(path_all_shuffled, start_test, end_test, "test")
+    make_patches(path_all_shuffled, start_train, end_train,"train", data_patches_path)
+    make_patches(path_all_shuffled, start_val, end_val, "val", data_patches_path)
+    make_patches(path_all_shuffled, start_test, end_test, "test", data_patches_path)
     
     
