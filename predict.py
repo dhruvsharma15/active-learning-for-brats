@@ -199,7 +199,7 @@ class Prediction(object):
 if __name__ == "__main__":
 
     #set arguments
-    model_to_load="../trained_weights_AL3/ResUnet.30.hdf5"#+sorted(os.listdir("./trained_weights/"))[-1]
+    model_to_load="../trained_weights_AL3/ResUnet.20.hdf5"#+sorted(os.listdir("./trained_weights/"))[-1]
     #paths for the testing data
     path_HGG = glob('../data_split/Testing_data/HGG/**')
     path_LGG = glob('../data_split/Testing_data/LGG/**')
