@@ -94,7 +94,8 @@ class Prediction(object):
         '''
         
         predicted_images,gt= self.predict_volume(filepath_image,show)
-
+        if not os.path.isdir('./predictions_AL2'):
+            os.mkdir('./predictions_AL2')
         if save:
             tmp=sitk.GetImageFromArray(predicted_images)
             sitk.WriteImage ( tmp,'predictions_AL2/{}.nii.gz'.format(save_path) )
