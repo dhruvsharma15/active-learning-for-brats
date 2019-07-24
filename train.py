@@ -88,8 +88,8 @@ def main():
         query_strategy = partial(uncertainty_batch_sampling, n_instances=nb_annotations)
     
     # Data Loading
-    Y_=np.load(x_train_patches_path, mmap_mode = 'r').astype(np.uint8)
-    X_=np.load(y_train_patches_path, mmap_mode = 'r').astype(np.float32)
+    Y_=np.load(y_train_patches_path, mmap_mode = 'r').astype(np.uint8)
+    X_=np.load(x_train_patches_path, mmap_mode = 'r').astype(np.float32)
     
     Y_labels=Y_[:20000]
     X_patches=X_[:20000]
