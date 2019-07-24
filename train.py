@@ -27,8 +27,8 @@ from strategies.batch_sampling import uncertainty_batch_sampling
 #                        inter_op_parallelism_threads=8,
 #                        allow_soft_placement=True,
 #                        device_count = {'CPU': 8})
-session = tf.Session(config=config)
-K.set_session(session)
+#session = tf.Session(config=config)
+#K.set_session(session)
 
 def main():
     start=datetime.now()
