@@ -23,10 +23,10 @@ from strategies.uncertainty import *
 from strategies.coreset_ranked_sampling import informative_batch_sampling
 from strategies.batch_sampling import uncertainty_batch_sampling
 
-config = tf.ConfigProto(intra_op_parallelism_threads=8,
-                        inter_op_parallelism_threads=8,
-                        allow_soft_placement=True,
-                        device_count = {'CPU': 8})
+#config = tf.ConfigProto(intra_op_parallelism_threads=8,
+#                        inter_op_parallelism_threads=8,
+#                        allow_soft_placement=True,
+#                        device_count = {'CPU': 8})
 session = tf.Session(config=config)
 K.set_session(session)
 
@@ -81,11 +81,11 @@ def main():
     try:
         strategy = int(config.get('AL_params', 'query_strategy'))
         if(strategy == 'informative_batch_sampling'):
-            query_strategy = partial(uncertainty_batch_sampling, n_instances=nb_annotations)
+            query_strategy = partial(informative_batch_sampling, n_instances=nb_annotations)
         if(strategy == 'uncertainty_batch_sampling'):
             query_strategy = partial(uncertainty_batch_sampling, n_instances=nb_annotations)
     except:
-        query_strategy = partial(uncertainty_batch_sampling, n_instances=nb_annotations)
+        query_strategy = partial(informative_batch_sampling, n_instances=nb_annotations)
     
     # Data Loading
     Y_=np.load(y_train_patches_path, mmap_mode = 'r').astype(np.uint8)
