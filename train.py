@@ -194,17 +194,6 @@ def main():
         
         del labeled_inter, unlabeled_inter, features_labeled, features_unlabeled
         
-    ############### testing #######################
-    model_weight_paths = sorted(os.listdir(weights_path))[-1]
-    
-    print('testing the model')
-    
-    weights_path = os.path.join(weights_path, model_weight_paths)
-
-    val_output = learner.evaluate(X = X_test, y = Y_test, model_path=weights_path, batch_size=4, verbose=1)
-    
-    for i in range(len(learner.model.metrics_names)):
-        print(learner.model.metrics_names[i], val_output[i])
     
     print('time taken to run the code ', datetime.now()-start)
     
