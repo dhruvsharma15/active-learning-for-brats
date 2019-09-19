@@ -20,6 +20,7 @@ from sklearn.metrics.pairwise import pairwise_distances, pairwise_distances_argm
 from keras.models import Model
 from strategies.uncertainty import *
 from sklearn.neighbors import NearestNeighbors
+from scipy.spatial.distance import cdist
 
 def select_instance(
         X_training,
@@ -87,7 +88,8 @@ def select_instance(
     if n_jobs == 1 or n_jobs is None:
         _, distance_scores = pairwise_distances_argmin_min(X_pool_features, X_training_features, metric=metric)
     else:
-        distance_scores = pairwise_distances(X_pool_features, X_training_features, metric=metric, n_jobs=n_jobs).min(axis=1)
+        #distance_scores = pairwise_distances(X_pool_features, X_training_features, metric=metric, n_jobs=n_jobs).min(axis=1)
+        distance_scores = cdist(X_pool_features, X_training_features, metric=metric).min(axis=1)
     ############################################################################################################
     
     similarity_scores = 1 / (1 + distance_scores)

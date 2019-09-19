@@ -12,7 +12,36 @@ Uncertainty measures and uncertainty based sampling strategies for the active le
 import numpy as np
 from sklearn.exceptions import NotFittedError
 from scipy.special import entr
+import keras.backend as K
 
+def mc_dropout_uncertainty(model, X, nb_mc = 10):
+    """
+    MC Dropout uncertainty for the model as described in https://arxiv.org/pdf/1506.02142.pdf
+    
+    Args:
+        
+    """
+    model = model.model
+    model = K.function(
+            [model.layers[0].input, 
+             K.learning_phase()],
+            [model.layers[-1].output])
+            
+    result = []
+    for _ in range(nb_mc):
+        out = np.array(model([X , 1])[0])        
+        result.append(out)
+    
+    MC_samples = np.array(result)
+    
+    expected_entropy = - np.mean(np.sum(MC_samples * np.log(MC_samples + 1e-10), axis=-1), axis=0)  # [batch size]
+    expected_p = np.mean(MC_samples, axis=0)
+    entropy_expected_p = - np.sum(expected_p * np.log(expected_p + 1e-10), axis=-1)  # [batch size]
+    BALD_acq = entropy_expected_p - expected_entropy
+    
+    BALD_acq = BALD_acq.mean(axis = (1,2))
+    
+    return BALD_acq
 
 def segmentation_uncertainty(model, X):
     """
@@ -30,7 +59,8 @@ def segmentation_uncertainty(model, X):
         segment_uncertainty = model.predict(X, verbose = 0)
     except NotFittedError:
         return np.ones(shape=(X.shape[0], ))
-
+    
+    print(segment_uncertainty[0][0])
     # for each point, select the maximum uncertainty
     uncertainty = 1 - np.mean(np.max(segment_uncertainty, axis=len(X.shape)-1), axis = (1,2))
     return uncertainty
@@ -82,6 +112,24 @@ def segmentation_entropy(model, X):
     
     return entropy
 
+def mc_dropout_sampling(model, X_u, nb_mc = 10, n_instances = 1):
+    """
+    MC Dropout based sampling query strategy. Selects the least sure instances for labelling.
+
+    Args:
+        model: The model for which the labels are to be queried.
+        X_u: The pool of samples to query from.
+        n_instances: Number of samples to be queried.
+        nb_mc: Number of monte-carlo steps
+
+    Returns:
+        The indices of the instances from X chosen to be labelled;
+        the instances from X_u chosen to be labelled.
+    """
+    uncertainty = mc_dropout_uncertainty(model, X_u, nb_mc)
+    query_idx = np.argpartition(-uncertainty, n_instances-1, axis=0)[:n_instances]
+    
+    return query_idx, X_u[query_idx]
 
 def uncertainty_sampling(model, X_u, n_instances = 1):
     """

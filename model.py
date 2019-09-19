@@ -117,6 +117,12 @@ class Unet_model(object):
         
         return  n   
 
+from keras.utils import plot_model
+
+if __name__ == '__main__':
+    model = Unet_model(img_shape = (128,128,4)).model
+    plot_model(model=model, to_file='../graph.png')
+    print('success')
 
 
     

@@ -20,8 +20,14 @@ def dice_whole_metric(y_true, y_pred):
 
     y_true_f = K.reshape(y_true,shape=(-1,4))
     y_pred_f = K.reshape(y_pred,shape=(-1,4))
+    
+    #workaround for tf
+#    y_whole=K.sum(tf.gather(y_true_f, [1,3],axis =1),axis=1)
+#    p_whole=K.sum(tf.gather(y_pred_f, [1,3],axis =1),axis=1)    
+    
     y_whole=K.sum(y_true_f[:,1:],axis=1)
     p_whole=K.sum(y_pred_f[:,1:],axis=1)
+    
     dice_whole=dice(y_whole,p_whole)
     return dice_whole
 

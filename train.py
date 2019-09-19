@@ -19,6 +19,7 @@ from sklearn.preprocessing import StandardScaler
 
 from active_learner import ActiveLearner
 from model import Unet_model
+from model_MC import Unet_model
 from strategies.uncertainty import *
 from strategies.coreset_ranked_sampling import informative_batch_sampling
 from strategies.batch_sampling import uncertainty_batch_sampling
@@ -79,11 +80,14 @@ def main():
         nb_annotations = 600
         
     try:
-        strategy = int(config.get('AL_params', 'query_strategy'))
+        strategy = config.get('AL_params', 'query_strategy')
         if(strategy == 'informative_batch_sampling'):
             query_strategy = partial(informative_batch_sampling, n_instances=nb_annotations)
         if(strategy == 'uncertainty_batch_sampling'):
             query_strategy = partial(uncertainty_batch_sampling, n_instances=nb_annotations)
+        if(strategy == 'mc_dropout_sampling'):
+            query_strategy = partial(mc_dropout_sampling, n_instances=nb_annotations)
+        
     except:
         query_strategy = partial(informative_batch_sampling, n_instances=nb_annotations)
     
@@ -170,9 +174,9 @@ def main():
         print('Query no. %d' % (idx + 1))
         print('Training data shape', learner.X_training.shape)
         print('Unlabeled data shape', X_pool.shape)
-        query_idx, query_instance = learner.query(X_u=X_pool, n_instances = nb_annotations, 
-                                                  features_labeled = features_labeled, 
-                                                  features_unlabeled = features_unlabeled)
+        query_idx, query_instance = learner.query(X_u=X_pool, n_instances = nb_annotations) 
+                                                  #features_labeled = features_labeled, 
+                                                  #features_unlabeled = features_unlabeled)
         
         learner.teach(
             X=X_pool[query_idx], y=y_pool[query_idx], only_new=False,
