@@ -21,8 +21,8 @@ from active_learner import ActiveLearner
 from model import Unet_model
 from model_MC import Unet_model
 from strategies.uncertainty import *
-from strategies.coreset_ranked_sampling import informative_batch_sampling
-from strategies.batch_sampling import uncertainty_batch_sampling
+#from strategies.coreset_ranked_sampling import informative_batch_sampling
+#from strategies.batch_sampling import uncertainty_batch_sampling
 
 #config = tf.ConfigProto(intra_op_parallelism_threads=8,
 #                        inter_op_parallelism_threads=8,
@@ -87,6 +87,8 @@ def main():
             query_strategy = partial(uncertainty_batch_sampling, n_instances=nb_annotations)
         if(strategy == 'mc_dropout_sampling'):
             query_strategy = partial(mc_dropout_sampling, n_instances=nb_annotations)
+        if(strategy == 'spatial_unceratinty_sampling'):
+            query_strategy = partial(spatial_unceratinty_sampling, n_instances=nb_annotations)
         
     except:
         query_strategy = partial(informative_batch_sampling, n_instances=nb_annotations)
@@ -151,6 +153,8 @@ def main():
                                          outputs=learner.model.get_layer(layer_name).output)
     for idx in range(nb_iterations):
         nb_active_epochs = nb_active_epochs + 2
+        
+        '''
         ## features of the labeled and the unlabeled pool ############
         print('extracting features from the encoder of the UNet')
         n_dims = min(1024,min(len(learner.X_training), len(X_pool)))
@@ -171,6 +175,7 @@ def main():
         pca = PCA(n_components = min(n_dims, min(unlabeled_inter.shape)))
         features_unlabeled = pca.fit_transform(unlabeled_inter)
         #################################################################
+        '''
         print('Query no. %d' % (idx + 1))
         print('Training data shape', learner.X_training.shape)
         print('Unlabeled data shape', X_pool.shape)
@@ -196,7 +201,7 @@ def main():
         for i in range(len(learner.model.metrics_names)):
             print(learner.model.metrics_names[i], val_output[i])
         
-        del labeled_inter, unlabeled_inter, features_labeled, features_unlabeled
+        #del labeled_inter, unlabeled_inter, features_labeled, features_unlabeled
         
     
     print('time taken to run the code ', datetime.now()-start)

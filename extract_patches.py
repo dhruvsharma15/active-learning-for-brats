@@ -1,8 +1,8 @@
-import os
-os.environ["CUDA_DEVICE_ORDER"]="PCI_BUS_ID"
+#import os
+#os.environ["CUDA_DEVICE_ORDER"]="PCI_BUS_ID"
  
 # The GPU id to use, usually either "0" or "1";
-os.environ["CUDA_VISIBLE_DEVICES"]="0"
+#os.environ["CUDA_VISIBLE_DEVICES"]="0"
 
 import random
 import sys
@@ -18,12 +18,12 @@ import shutil
 import tensorflow as tf
 import keras.backend as K
 
-config = tf.ConfigProto(intra_op_parallelism_threads=8,
-                        inter_op_parallelism_threads=8,
-                        allow_soft_placement=True,
-                        device_count = {'CPU': 8})
-session = tf.Session(config=config)
-K.set_session(session)
+#config = tf.ConfigProto(intra_op_parallelism_threads=8,
+#                        inter_op_parallelism_threads=8,
+#                        allow_soft_placement=True,
+#                        device_count = {'CPU': 8})
+#session = tf.Session(config=config)
+#K.set_session(session)
 
 def make_split_folders(dst_path, start_ind, end_ind, ind_list, path_all):
     if not os.path.isdir(dst_path):
@@ -276,20 +276,20 @@ if __name__ == '__main__':
     path_all_shuffled, ind = zip(*path_all_) 
     
     start_train = 0
-    end_train = 228
+    end_train = 10
     
     start_val = 228
-    end_val = 256
+    end_val = 233
     
     start_test = 256
-    end_test = 285
+    end_test = 261
     
     ############## make folders #######################
-    if not os.path.isdir(data_split_path):
-        os.mkdir(data_split_path)
-    make_split_folders(os.path.join(data_split_path,'Training_data'), start_train, end_train, ind, path_all_shuffled)
-    make_split_folders(os.path.join(data_split_path,'Validation_data'), start_val, end_val, ind, path_all_shuffled)
-    make_split_folders(os.path.join(data_split_path,'Testing_data'), start_test, end_test, ind, path_all_shuffled)
+#    if not os.path.isdir(data_split_path):
+#        os.mkdir(data_split_path)
+#    make_split_folders(os.path.join(data_split_path,'Training_data'), start_train, end_train, ind, path_all_shuffled)
+#    make_split_folders(os.path.join(data_split_path,'Validation_data'), start_val, end_val, ind, path_all_shuffled)
+#    make_split_folders(os.path.join(data_split_path,'Testing_data'), start_test, end_test, ind, path_all_shuffled)
     
     np.random.seed(1555)
 

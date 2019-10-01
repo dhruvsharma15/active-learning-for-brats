@@ -12,7 +12,9 @@ Uncertainty measures and uncertainty based sampling strategies for the active le
 import numpy as np
 from sklearn.exceptions import NotFittedError
 from scipy.special import entr
-import keras.backend as K
+from keras.models import Model
+from tqdm import tqdm
+from skimage.measure import block_reduce
 
 def mc_dropout_uncertainty(model, X, nb_mc = 10):
     """
@@ -21,15 +23,23 @@ def mc_dropout_uncertainty(model, X, nb_mc = 10):
     Args:
         
     """
+    print("#####################################")
+    print("###### MC Dropout Sampling ##########")
+    print("#####################################")
+
     model = model.model
-    model = K.function(
-            [model.layers[0].input, 
-             K.learning_phase()],
-            [model.layers[-1].output])
+    model_MC = Model(inputs=model.input, outputs=model.layers[-1].output)
+#    model_MC = K.function(
+#            [model.layers[0].input, 
+#             K.learning_phase()],
+#            [model.layers[-1].output])
             
     result = []
-    for _ in range(nb_mc):
-        out = np.array(model([X , 1])[0])        
+    print("MC runs through the network")
+    
+    for _ in tqdm(range(nb_mc)):
+#        out = np.array(model_MC([X , 1])[0])  
+        out = model_MC.predict(X, batch_size = 4)
         result.append(out)
     
     MC_samples = np.array(result)
@@ -41,7 +51,62 @@ def mc_dropout_uncertainty(model, X, nb_mc = 10):
     
     BALD_acq = BALD_acq.mean(axis = (1,2))
     
+    del model_MC
     return BALD_acq
+
+def spatial_uncertainty(model, X, threshold = 0.5, nb_mc = 10):
+    """
+    Spatial uncertainty taken into account to capture a better uncertainty result.
+    MC Dropout uncertainty for the model as described in https://arxiv.org/pdf/1506.02142.pdf
+    
+    Args:
+        
+    """
+    print("#####################################")
+    print("###### MC Dropout Sampling ##########")
+    print("#####################################")
+
+    model = model.model
+    model_MC = Model(inputs=model.input, outputs=model.layers[-1].output)
+#    model_MC = K.function(
+#            [model.layers[0].input, 
+#             K.learning_phase()],
+#            [model.layers[-1].output])
+            
+    result = []
+    print("MC runs through the network")
+    
+    for _ in tqdm(range(nb_mc)):
+#        out = np.array(model_MC([X , 1])[0])  
+        out = model_MC.predict(X, batch_size = 4)
+        result.append(out)
+    
+    MC_samples = np.array(result)
+    
+    expected_entropy = - np.mean(np.sum(MC_samples * np.log(MC_samples + 1e-10), axis=-1), axis=0)  # [batch size]
+    expected_p = np.mean(MC_samples, axis=0)
+    entropy_expected_p = - np.sum(expected_p * np.log(expected_p + 1e-10), axis=-1)  # [batch size]
+    
+    BALD_acq = entropy_expected_p - expected_entropy
+    
+#    ############################
+#    from PIL import Image
+#    data = -1*BALD_acq[0]*255.0
+#    img = Image.fromarray(data)
+#    img.show()
+#    ############################
+    
+    
+    pooledBALD = block_reduce(BALD_acq, block_size=(1,4,4), func=np.mean)
+    
+    elements = 1
+    for dim in np.shape(pooledBALD)[1:]:
+        elements *= dim
+    
+    uncertain_blocks_score = np.sum(pooledBALD>threshold, axis=(1,2))
+    uncertain_blocks_score = uncertain_blocks_score/(1.0*elements)
+
+    return uncertain_blocks_score
 
 def segmentation_uncertainty(model, X):
     """
@@ -111,6 +176,25 @@ def segmentation_entropy(model, X):
     entropy = np.mean(entr(segment_uncertainty).sum(axis= len(X.shape)-1), axis = (1,2))
     
     return entropy
+
+def spatial_unceratinty_sampling(model, X_u, nb_mc = 10, n_instances = 1):
+    """
+    Spatial uncertainty sampling query strategy. Selects the least sure instances for labelling.
+
+    Args:
+        model: The model for which the labels are to be queried.
+        X_u: The pool of samples to query from.
+        n_instances: Number of samples to be queried.
+        nb_mc: Number of monte-carlo steps
+
+    Returns:
+        The indices of the instances from X chosen to be labelled;
+        the instances from X_u chosen to be labelled.
+    """
+    uncertainty = spatial_uncertainty(model, X_u, nb_mc)
+    query_idx = np.argpartition(-uncertainty, n_instances-1, axis=0)[:n_instances]
+    
+    return query_idx, X_u[query_idx]
 
 def mc_dropout_sampling(model, X_u, nb_mc = 10, n_instances = 1):
     """
